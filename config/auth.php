@@ -114,4 +114,16 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | API Token Expiration
+    |--------------------------------------------------------------------------
+    |
+    | The number of days an issued API session/token remains valid before it
+    | must be re-established by logging in again.
+    |
+    */
+
+    'token_expiration_days' => env('AUTH_TOKEN_EXPIRATION_DAYS', 30),
+
 ];
