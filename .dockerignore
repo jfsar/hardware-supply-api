@@ -1,0 +1,15 @@
+.git
+.github
+.agents
+.codex
+.env
+vendor
+node_modules
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+references
+tests
+README.md
+*.md
