@@ -35,6 +35,7 @@ class RegistrationTest extends TestCase
         $this->assertTrue(Hash::check('sup3r-Secret-password', $user->password));
 
         Notification::assertSentTo($user, VerifyEmail::class);
+        Notification::assertSentToTimes($user, VerifyEmail::class, 1);
     }
 
     public function test_duplicate_emails_are_rejected_case_insensitively(): void
