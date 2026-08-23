@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserStatus;
+use App\Models\Concerns\HasRoles;
 use App\Notifications\Auth\ResetPassword as ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmail as VerifyEmailNotification;
 use Database\Factories\UserFactory;
@@ -10,7 +11,6 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,7 +24,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /**
      * Bootstrap the model and its attributes.
@@ -85,11 +85,10 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * The administrative roles assigned to this user.
+     * The single active saved delivery address.
      */
-    public function roles(): BelongsToMany
+    public function address(): HasOne
     {
-        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id')
-            ->withPivot('created_at');
+        return $this->hasOne(CustomerAddress::class);
     }
 }

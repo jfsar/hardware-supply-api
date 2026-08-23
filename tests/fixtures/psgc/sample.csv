@@ -1,0 +1,13 @@
+code,name,level
+0300000000,Central Luzon,Reg
+1300000000,National Capital Region,Reg
+0700000000,Central Visayas,Reg
+0314000000,Bulacan,Prov
+0722000000,Cebu,Prov
+031405000,Meycauayan City,City
+130702000,Pasay,City
+072226000,Liloan,Mun
+0314050001,Salvacion,Bgy
+1307020001,Barangay One,Bgy
+0722260001,Poblacion,Bgy
+9999999999,Mystery Row,Mystery

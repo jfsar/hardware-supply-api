@@ -2,24 +2,33 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Console\Commands\ImportPsgc;
+use App\Models\Region;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * Seed the application's reference data.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call([
+            PermissionSeeder::class,
+            RoleSeeder::class,
+            AdminUserSeeder::class,
+        ]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $source = storage_path('app/import/psgc.csv');
+
+        if (! Region::query()->exists() && is_file($source)) {
+            Artisan::call(ImportPsgc::class, ['path' => $source]);
+        }
+
+        $this->call([
+            TaxClassSeeder::class,
+            LocationSeeder::class,
         ]);
     }
 }

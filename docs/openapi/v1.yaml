@@ -1,0 +1,269 @@
+openapi: 3.1.0
+info:
+  title: Hardware & Supply Store API
+  version: 1.0.0
+  description: |
+    B2C hardware and supply e-commerce REST API (Philippines market).
+
+    Conventions:
+    - Success payloads are wrapped under a top-level `data` key.
+    - Every response carries a `request_id` correlation identifier.
+    - Errors are rendered centrally as `{error: {code, message, details}, request_id}`.
+    - Monetary amounts are integer minor units (`*_minor`) with a `currency_code`.
+servers:
+  - url: /api/v1
+tags:
+  - name: Auth
+  - name: Profile
+  - name: Address
+  - name: Account Privacy
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a customer account (FR-AUTH-001)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [first_name, last_name, email, password, password_confirmation]
+              properties:
+                first_name: { type: string, maxLength: 100 }
+                last_name: { type: string, maxLength: 100 }
+                email: { type: string, format: email }
+                phone: { type: string, maxLength: 30 }
+                password: { type: string, format: password, minLength: 10 }
+                password_confirmation: { type: string, format: password }
+      responses:
+        '201': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate and issue a device session token (FR-AUTH-004)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                device_name: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '409':
+          description: Two-factor challenge issued; contains `challenge_token` in error details.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current session token
+      responses:
+        '200': { $ref: '#/components/responses/MessageEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /auth/me:
+    get:
+      tags: [Profile]
+      summary: The authenticated customer's profile (FR-CUST-001)
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+    patch:
+      tags: [Profile]
+      summary: Update profile fields; optional password change requires `current_password`
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name: { type: string, maxLength: 100 }
+                last_name: { type: string, maxLength: 100 }
+                phone: { type: string, maxLength: 30, nullable: true }
+                current_password: { type: string, format: password }
+                password: { type: string, format: password, minLength: 10, nullable: true }
+                password_confirmation: { type: string, format: password }
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /address:
+    get:
+      tags: [Address]
+      summary: Show the saved address or null (FR-CUST-002)
+      responses:
+        '200': { $ref: '#/components/responses/NullableResourceEnvelope' }
+    put:
+      tags: [Address]
+      summary: Create or replace the single active saved address (FR-CUST-002/003/005)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddressInput' }
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Address]
+      summary: Soft-delete the saved address; order history unaffected (FR-CUST-005)
+      responses:
+        '200': { $ref: '#/components/responses/MessageEnvelope' }
+  /account/export:
+    post:
+      tags: [Account Privacy]
+      summary: Queue an export of eligible personal data (FR-CUST-006, NFR-PRIV-001)
+      responses:
+        '202': { $ref: '#/components/responses/AcceptedEnvelope' }
+  /account/export/{export}:
+    get:
+      tags: [Account Privacy]
+      summary: Download the generated export via signed link
+      security: []
+      parameters:
+        - in: path
+          name: export
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: JSON file download.
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /account/delete-request:
+    post:
+      tags: [Account Privacy]
+      summary: Request account deletion; revokes access immediately (NFR-PRIV-002 groundwork)
+      responses:
+        '200': { $ref: '#/components/responses/MessageEnvelope' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+      description: Laravel Sanctum personal access token.
+  schemas:
+    EnvelopeMeta:
+      type: object
+      description: Pagination or collection metadata when applicable.
+      additionalProperties: true
+    ErrorEnvelope:
+      type: object
+      required: [error, request_id]
+      properties:
+        error:
+          type: object
+          required: [code, message, details]
+          properties:
+            code:
+              type: string
+              description: Stable SCREAMING_SNAKE code (e.g. VALIDATION_ERROR, FORBIDDEN).
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+        request_id:
+          type: string
+          description: ULID correlation id assigned by middleware.
+    AddressInput:
+      type: object
+      required: [region_id, city_id, barangay_id, address_line1, recipient_name, recipient_phone]
+      properties:
+        region_id: { type: integer, description: PH region; hierarchy validated server-side. }
+        province_id: { type: integer, nullable: true }
+        city_id: { type: integer }
+        barangay_id: { type: integer }
+        postal_code_id: { type: integer, nullable: true }
+        address_line1: { type: string, maxLength: 255 }
+        address_line2: { type: string, maxLength: 255, nullable: true }
+        recipient_name: { type: string, maxLength: 200 }
+        recipient_phone: { type: string, maxLength: 30 }
+        latitude: { type: number, minimum: -90, maximum: 90, nullable: true }
+        longitude: { type: number, minimum: -180, maximum: 180, nullable: true }
+        notes: { type: string, maxLength: 1000, nullable: true }
+  responses:
+    ResourceEnvelope:
+      description: Successful resource payload.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data: { type: object, additionalProperties: true }
+              meta: { $ref: '#/components/schemas/EnvelopeMeta' }
+              request_id: { type: string }
+    NullableResourceEnvelope:
+      description: Resource payload or null when absent.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data: { type: [object, 'null'], additionalProperties: true }
+              request_id: { type: string }
+    MessageEnvelope:
+      description: Success message.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  message: { type: string }
+              request_id: { type: string }
+    AcceptedEnvelope:
+      description: Queued for asynchronous processing.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  message: { type: string }
+              request_id: { type: string }
+    ValidationError:
+      description: Validation failed; field errors in `details.fields`.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthenticated:
+      description: Missing or invalid authentication credentials.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: Insufficient permissions or protected resource.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TooManyRequests:
+      description: Rate limit exceeded.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }

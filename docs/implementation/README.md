@@ -9,7 +9,7 @@ requirement IDs.
 
 | Phase | Guide | State |
 |---|---|---|
-| 1 — Foundation | [phase-01-foundation.md](phase-01-foundation.md) | Auth/2FA/sessions done; migrations pending run; seeders + permissions + addresses outstanding |
+| 1 — Foundation | [phase-01-foundation.md](phase-01-foundation.md) | ✅ Complete (2026-08-23): migrations run, RBAC/geography/location/tax seeded, permission middleware live, profile/address/privacy APIs shipped |
 | 2 — Catalog | [phase-02-catalog.md](phase-02-catalog.md) | Not started |
 | 3 — Inventory | [phase-03-inventory.md](phase-03-inventory.md) | Not started |
 | 4 — Commerce | [phase-04-commerce.md](phase-04-commerce.md) | Not started |
