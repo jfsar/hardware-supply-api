@@ -151,6 +151,362 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/MessageEnvelope' }
         '403': { $ref: '#/components/responses/Forbidden' }
+  /admin/products:
+    get:
+      tags: [Catalog Admin]
+      summary: Paginated staff product index (products.view)
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [draft, active, inactive, archived] }
+        - in: query
+          name: category_id
+          schema: { type: integer }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: per_page
+          schema: { type: integer, maximum: 100, default: 25 }
+      responses:
+        '200': { $ref: '#/components/responses/ListEnvelope' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Catalog Admin]
+      summary: Create a draft product with nested variants (FR-CAT-004/008)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '201': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/products/{ulid}:
+    parameters:
+      - in: path
+        name: ulid
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Catalog Admin]
+      summary: Full product detail including cost fields (products.view)
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Catalog Admin]
+      summary: Partial update; variants array carries the full desired set
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Catalog Admin]
+      summary: Archive (soft-delete) the product (FR-CAT-010)
+      responses:
+        '200': { $ref: '#/components/responses/MessageEnvelope' }
+  /admin/products/{ulid}/publish:
+    post:
+      tags: [Catalog Admin]
+      summary: Make the product publicly visible; requires an active variant
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422':
+          description: PRODUCT_NOT_PUBLISHABLE when no active variant exists.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  /admin/products/{ulid}/unpublish:
+    post:
+      tags: [Catalog Admin]
+      summary: Withdraw the product from public browsing
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+  /admin/products/{ulid}/restore:
+    post:
+      tags: [Catalog Admin]
+      summary: Restore an archived product back to draft
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /admin/products/{ulid}/images:
+    post:
+      tags: [Catalog Admin]
+      summary: Upload a product image to object storage (SRS §45)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary, description: jpg/png/webp up to catalog.image_max_kb }
+                sort_order: { type: integer }
+                is_primary: { type: boolean }
+                product_variant_id: { type: integer, nullable: true }
+      responses:
+        '201': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/products/{ulid}/images/{image}:
+    delete:
+      tags: [Catalog Admin]
+      summary: Delete a product image row and its stored file
+      parameters:
+        - in: path
+          name: image
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/MessageEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /admin/products/{ulid}/documents:
+    post:
+      tags: [Catalog Admin]
+      summary: Upload a PDF manual/datasheet
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, document]
+              properties:
+                title: { type: string }
+                document: { type: string, format: binary, description: pdf up to catalog.document_max_kb }
+                sort_order: { type: integer }
+                product_variant_id: { type: integer, nullable: true }
+      responses:
+        '201': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/products/{ulid}/documents/{document}:
+    delete:
+      tags: [Catalog Admin]
+      summary: Delete a document row and its stored file
+      parameters:
+        - in: path
+          name: document
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/MessageEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /admin/categories:
+    get:
+      tags: [Catalog Admin]
+      summary: Paginated category index (categories.manage)
+      responses:
+        '200': { $ref: '#/components/responses/ListEnvelope' }
+    post:
+      tags: [Catalog Admin]
+      summary: Create a category with optional parent and SEO metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryInput' }
+      responses:
+        '201': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/categories/{ulid}:
+    parameters:
+      - in: path
+        name: ulid
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Catalog Admin]
+      summary: Show one category with children
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+    patch:
+      tags: [Catalog Admin]
+      summary: Partial category update (cycle-guarded parenting)
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryInput' }
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+    delete:
+      tags: [Catalog Admin]
+      summary: Soft-delete unless children or visible products exist (409 CATEGORY_IN_USE)
+      responses:
+        '200': { $ref: '#/components/responses/MessageEnvelope' }
+        '409':
+          description: Category still referenced.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  /admin/brands:
+    get:
+      tags: [Catalog Admin]
+      summary: Paginated brand index (brands.manage)
+      responses:
+        '200': { $ref: '#/components/responses/ListEnvelope' }
+    post:
+      tags: [Catalog Admin]
+      summary: Create a brand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 255 }
+                description: { type: string, nullable: true }
+                status: { type: string, enum: [active, inactive] }
+      responses:
+        '201': { $ref: '#/components/responses/ResourceEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/brands/{ulid}:
+    parameters:
+      - in: path
+        name: ulid
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Catalog Admin]
+      summary: Show one brand
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+    patch:
+      tags: [Catalog Admin]
+      summary: Partial brand update
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+    delete:
+      tags: [Catalog Admin]
+      summary: Soft-delete the brand
+      responses:
+        '200': { $ref: '#/components/responses/MessageEnvelope' }
+  /categories:
+    get:
+      tags: [Catalog Public]
+      summary: Active categories; pass view=tree for the cached hierarchy
+      security: []
+      parameters:
+        - in: query
+          name: view
+          schema: { type: string, enum: [flat, tree] }
+      responses:
+        '200': { $ref: '#/components/responses/ListEnvelope' }
+  /categories/{slug}:
+    get:
+      tags: [Catalog Public]
+      summary: One active category by slug
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /products:
+    get:
+      tags: [Catalog Public]
+      summary: Search/browse products through the search contract (FR-SRCH-001…006)
+      security: []
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: category
+          schema: { type: string, description: category slug }
+        - in: query
+          name: brands[]
+          schema: { type: array, items: { type: string } }
+        - in: query
+          name: min_price_minor
+          schema: { type: integer }
+        - in: query
+          name: max_price_minor
+          schema: { type: integer }
+        - in: query
+          name: in_stock
+          schema: { type: boolean, description: No-op until Phase 3 inventory lands. }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [relevance, price_asc, price_desc, newest] }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: per_page
+          schema: { type: integer, maximum: 100, default: 25 }
+      responses:
+        '200':
+          description: Paginated products plus facet counts.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/responses/ListEnvelope' }
+                  - type: object
+                    properties:
+                      facets:
+                        type: object
+                        properties:
+                          categories: { type: array, items: { $ref: '#/components/schemas/FacetBucket' } }
+                          brands: { type: array, items: { $ref: '#/components/schemas/FacetBucket' } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /products/{slug}:
+    get:
+      tags: [Catalog Public]
+      summary: Product detail with variants, images, specs, warranty and bundle contents
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/ResourceEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /products/{slug}/related:
+    get:
+      tags: [Catalog Public]
+      summary: Related products and accessories (FR-CAT-002)
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/ListEnvelope' }
+  /products/{slug}/reviews:
+    get:
+      tags: [Catalog Public]
+      summary: Published reviews; populated in Phase 7 (FR-REV-001)
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/ListEnvelope' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /search/autocomplete:
+    get:
+      tags: [Catalog Public]
+      summary: Typeahead suggestions (FR-SRCH-005)
+      security: []
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, maximum: 25, default: 10 }
+      responses:
+        '200':
+          description: Suggestion list of slug/name pairs.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        slug: { type: string }
+                        name: { type: string }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 components:
   securitySchemes:
     bearerAuth:
@@ -198,7 +554,87 @@ components:
         latitude: { type: number, minimum: -90, maximum: 90, nullable: true }
         longitude: { type: number, minimum: -180, maximum: 180, nullable: true }
         notes: { type: string, maxLength: 1000, nullable: true }
+    SpecInput:
+      type: object
+      required: [attribute_id, value]
+      description: Typed spec entry; value shape must match the attribute data_type (FR-CAT-008).
+      properties:
+        attribute_id: { type: integer }
+        value:
+          description: string | integer | number | boolean depending on data_type; options must match a predefined value.
+    VariantInput:
+      type: object
+      required: [sku]
+      properties:
+        sku: { type: string, maxLength: 100, pattern: '^[A-Za-z0-9_-]+$' }
+        name: { type: string, nullable: true }
+        tax_class_id: { type: integer, nullable: true }
+        cost_amount_minor: { type: integer, minimum: 0, nullable: true, description: Internal cost; admin-only. }
+        cost_currency_code: { type: string, minLength: 3, maxLength: 3, nullable: true }
+        weight_grams: { type: integer, nullable: true }
+        length_mm: { type: integer, nullable: true }
+        width_mm: { type: integer, nullable: true }
+        height_mm: { type: integer, nullable: true }
+        is_default: { type: boolean }
+        status: { type: string, enum: [active, inactive, archived] }
+        attributes:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/SpecInput' }
+    ProductInput:
+      type: object
+      required: [name, category_id, variants]
+      properties:
+        name: { type: string, maxLength: 255 }
+        category_id: { type: integer }
+        brand_id: { type: integer, nullable: true }
+        sku_prefix: { type: string, maxLength: 50, nullable: true }
+        short_description: { type: string, maxLength: 1000, nullable: true }
+        description: { type: string, nullable: true }
+        warranty_type: { type: string, enum: [none, store, manufacturer, other], nullable: true }
+        warranty_duration_months: { type: integer, minimum: 1, nullable: true }
+        attributes:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/SpecInput' }
+        variants:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: '#/components/schemas/VariantInput' }
+    CategoryInput:
+      type: object
+      properties:
+        name: { type: string, maxLength: 255 }
+        parent_id: { type: integer, nullable: true }
+        description: { type: string, nullable: true }
+        sort_order: { type: integer }
+        status: { type: string, enum: [active, inactive] }
+        seo_title: { type: string, maxLength: 255, nullable: true }
+        seo_description: { type: string, maxLength: 500, nullable: true }
+    FacetBucket:
+      type: object
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        count: { type: integer }
   responses:
+    ListEnvelope:
+      description: Paginated collection payload.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items: { type: object, additionalProperties: true }
+              links:
+                type: object
+                additionalProperties: true
+              meta:
+                type: object
+                additionalProperties: true
     ResourceEnvelope:
       description: Successful resource payload.
       content:

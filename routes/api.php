@@ -2,7 +2,14 @@
 
 use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AddressController;
+use App\Http\Controllers\Api\V1\Admin\BrandController;
+use App\Http\Controllers\Api\V1\Admin\CategoryController;
+use App\Http\Controllers\Api\V1\Admin\ProductController;
+use App\Http\Controllers\Api\V1\Admin\ProductMediaController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\Catalog\CategoryController as PublicCategoryController;
+use App\Http\Controllers\Api\V1\Catalog\ProductController as PublicProductController;
+use App\Http\Controllers\Api\V1\Catalog\SearchAutocompleteController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SessionController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
@@ -51,3 +58,53 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:account'])->group(funct
         ->name('account.export.download');
     Route::post('/account/delete-request', [AccountController::class, 'requestDeletion'])->name('account.delete.request');
 });
+
+// Admin catalog management (Phase 2).
+Route::prefix('admin')->middleware(['auth:sanctum', 'throttle:admin'])->group(function (): void {
+    Route::get('/products', [ProductController::class, 'index'])
+        ->middleware('permission:products.view');
+    Route::post('/products', [ProductController::class, 'store'])
+        ->middleware('permission:products.create');
+    Route::get('/products/{product}', [ProductController::class, 'show'])
+        ->middleware('permission:products.view');
+    Route::patch('/products/{product}', [ProductController::class, 'update'])
+        ->middleware('permission:products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])
+        ->middleware('permission:products.delete');
+
+    Route::post('/products/{product}/publish', [ProductController::class, 'publish'])
+        ->middleware('permission:products.publish');
+    Route::post('/products/{product}/unpublish', [ProductController::class, 'unpublish'])
+        ->middleware('permission:products.publish');
+
+    Route::post('/products/{product}/restore', [ProductController::class, 'restore'])
+        ->middleware('permission:products.delete');
+
+    Route::post('/products/{product}/images', [ProductMediaController::class, 'storeImage'])
+        ->middleware('permission:products.update');
+    Route::delete('/products/{product}/images/{image}', [ProductMediaController::class, 'destroyImage'])
+        ->middleware('permission:products.update');
+    Route::post('/products/{product}/documents', [ProductMediaController::class, 'storeDocument'])
+        ->middleware('permission:products.update');
+    Route::delete('/products/{product}/documents/{document}', [ProductMediaController::class, 'destroyDocument'])
+        ->middleware('permission:products.update');
+
+    Route::apiResource('categories', CategoryController::class)
+        ->only(['index', 'store', 'show', 'update', 'destroy'])
+        ->middleware('permission:categories.manage');
+    Route::apiResource('brands', BrandController::class)
+        ->only(['index', 'store', 'show', 'update', 'destroy'])
+        ->middleware('permission:brands.manage');
+});
+
+// Public catalog browsing (Phase 2).
+Route::prefix('search')->middleware('throttle:search')->group(function (): void {
+    Route::get('/autocomplete', [SearchAutocompleteController::class, 'index']);
+});
+
+Route::get('/categories', [PublicCategoryController::class, 'index'])->middleware('throttle:search');
+Route::get('/categories/{slug}', [PublicCategoryController::class, 'show'])->middleware('throttle:search');
+Route::get('/products', [PublicProductController::class, 'index'])->middleware('throttle:search');
+Route::get('/products/{slug}', [PublicProductController::class, 'show'])->middleware('throttle:search');
+Route::get('/products/{slug}/related', [PublicProductController::class, 'related'])->middleware('throttle:search');
+Route::get('/products/{slug}/reviews', [PublicProductController::class, 'reviews'])->middleware('throttle:search');

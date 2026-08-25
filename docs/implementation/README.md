@@ -10,7 +10,7 @@ requirement IDs.
 | Phase | Guide | State |
 |---|---|---|
 | 1 — Foundation | [phase-01-foundation.md](phase-01-foundation.md) | ✅ Complete (2026-08-23): migrations run, RBAC/geography/location/tax seeded, permission middleware live, profile/address/privacy APIs shipped |
-| 2 — Catalog | [phase-02-catalog.md](phase-02-catalog.md) | Not started |
+| 2 — Catalog | [phase-02-catalog.md](phase-02-catalog.md) | ✅ Complete (2026-08-25): catalog models/factories, admin product/category/brand lifecycle with audit logging, media uploads on Cloudflare R2 (`r2` disk, signed URLs), public browsing APIs, search contract with MySQL driver, OpenAPI extended, suite green (103 tests) |
 | 3 — Inventory | [phase-03-inventory.md](phase-03-inventory.md) | Not started |
 | 4 — Commerce | [phase-04-commerce.md](phase-04-commerce.md) | Not started |
 | 5 — Payments | [phase-05-payments.md](phase-05-payments.md) | Not started |

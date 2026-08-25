@@ -4,6 +4,8 @@ namespace App\Http\Exceptions;
 
 use App\Exceptions\Auth\SuspendedAccountException;
 use App\Exceptions\Auth\TwoFactorRequiredException;
+use App\Exceptions\Catalog\CategoryInUseException;
+use App\Exceptions\Catalog\ProductNotPublishableException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -51,6 +53,14 @@ class ApiExceptionRenderer
 
         if ($exception instanceof SuspendedAccountException) {
             return [403, 'ACCOUNT_SUSPENDED', []];
+        }
+
+        if ($exception instanceof ProductNotPublishableException) {
+            return [422, 'PRODUCT_NOT_PUBLISHABLE', []];
+        }
+
+        if ($exception instanceof CategoryInUseException) {
+            return [409, 'CATEGORY_IN_USE', []];
         }
 
         if ($exception instanceof ValidationException) {

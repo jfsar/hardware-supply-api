@@ -2,14 +2,18 @@
 
 namespace App\Providers;
 
+use App\Contracts\ProductSearch;
+use App\Models\Product;
 use App\Models\User;
 use App\Services\PermissionCache;
+use App\Services\Search\MySqlProductSearch;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ProductSearch::class, MySqlProductSearch::class);
     }
 
     /**
@@ -30,6 +34,17 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiters();
         $this->configureGateBypass();
         $this->configurePermissionCacheInvalidation();
+        $this->configureProductBinding();
+    }
+
+    /**
+     * Admin routes resolve products by ULID including archived ones (FR-CAT-010).
+     */
+    private function configureProductBinding(): void
+    {
+        Route::bind('product', fn (string $value): Product => Product::withTrashed()
+            ->where('ulid', $value)
+            ->firstOrFail());
     }
 
     /**
@@ -50,6 +65,11 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('account', fn (Request $request) => Limit::perMinute(30)
             ->by(optional($request->user())->id ?? $request->ip()));
+
+        RateLimiter::for('admin', fn (Request $request) => Limit::perMinute(60)
+            ->by(optional($request->user())->id ?? $request->ip()));
+
+        RateLimiter::for('search', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
     }
 
     /**
