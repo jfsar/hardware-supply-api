@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\Admin\BrandController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
+use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -95,6 +96,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'throttle:admin'])->group(fu
     Route::apiResource('brands', BrandController::class)
         ->only(['index', 'store', 'show', 'update', 'destroy'])
         ->middleware('permission:brands.manage');
+
+    // Inventory administration (Phase 3).
+    Route::get('/inventory', [InventoryController::class, 'index'])
+        ->middleware('permission:inventory.view');
+    Route::get('/inventory/movements', [InventoryController::class, 'movements'])
+        ->middleware('permission:inventory.view');
+    Route::post('/inventory/{variant}/adjust', [InventoryController::class, 'adjust'])
+        ->middleware('permission:inventory.adjust');
 });
 
 // Public catalog browsing (Phase 2).

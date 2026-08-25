@@ -81,4 +81,29 @@ class ProductVariant extends Model
     {
         return $this->hasMany(VariantAttributeValue::class);
     }
+
+    /**
+     * Stock rows for this variant across locations.
+     */
+    public function inventories(): HasMany
+    {
+        return $this->hasMany(Inventory::class, 'product_variant_id');
+    }
+
+    /**
+     * Whether any location currently holds sellable (unreserved) stock.
+     * Uses the loaded relation when eager-loaded to stay N+1-free.
+     */
+    public function isInStock(): bool
+    {
+        if ($this->relationLoaded('inventories')) {
+            return $this->inventories->contains(
+                fn (Inventory $inventory): bool => $inventory->availableQuantity() > 0,
+            );
+        }
+
+        return $this->inventories()
+            ->whereRaw('quantity_on_hand - quantity_reserved > 0')
+            ->exists();
+    }
 }

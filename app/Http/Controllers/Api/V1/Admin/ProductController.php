@@ -8,6 +8,7 @@ use App\Actions\Catalog\PublishProduct;
 use App\Actions\Catalog\RestoreProduct;
 use App\Actions\Catalog\UnpublishProduct;
 use App\Actions\Catalog\UpdateProduct;
+use App\Exceptions\Catalog\ProductNotPublishableException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\StoreProductRequest;
 use App\Http\Requests\Catalog\UpdateProductRequest;
@@ -96,6 +97,8 @@ class ProductController extends Controller
 
     /**
      * Make the product publicly visible (products.publish).
+     *
+     * @throws ProductNotPublishableException when the product has no active variant
      */
     public function publish(Request $request, Product $product, PublishProduct $publish): JsonResponse
     {

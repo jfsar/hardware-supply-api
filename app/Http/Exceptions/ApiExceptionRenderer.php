@@ -6,6 +6,8 @@ use App\Exceptions\Auth\SuspendedAccountException;
 use App\Exceptions\Auth\TwoFactorRequiredException;
 use App\Exceptions\Catalog\CategoryInUseException;
 use App\Exceptions\Catalog\ProductNotPublishableException;
+use App\Exceptions\Inventory\InsufficientStockException;
+use App\Exceptions\Inventory\NegativeStockException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -61,6 +63,14 @@ class ApiExceptionRenderer
 
         if ($exception instanceof CategoryInUseException) {
             return [409, 'CATEGORY_IN_USE', []];
+        }
+
+        if ($exception instanceof InsufficientStockException) {
+            return [409, 'STOCK_INSUFFICIENT', $exception->details()];
+        }
+
+        if ($exception instanceof NegativeStockException) {
+            return [409, 'STOCK_NEGATIVE_NOT_ALLOWED', ['sku' => $exception->sku]];
         }
 
         if ($exception instanceof ValidationException) {

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Catalog;
 
 use App\Services\Search\SortOrder;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ListProductsRequest extends FormRequest
 {
@@ -33,7 +34,7 @@ class ListProductsRequest extends FormRequest
             'min_price_minor' => ['nullable', 'integer', 'min:0'],
             'max_price_minor' => ['nullable', 'integer', 'min:0', 'gte:min_price_minor'],
             'in_stock' => ['nullable', 'boolean'],
-            'sort' => ['nullable', 'in:'.implode(',', SortOrder::allowlist())],
+            'sort' => ['nullable', Rule::enum(SortOrder::class)],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

@@ -16,6 +16,8 @@ class PublishProduct
 
     /**
      * Flip a product to Active, rejecting products without an active variant.
+     *
+     * @throws ProductNotPublishableException when the product has no active variant
      */
     public function __invoke(User $actor, Product $product): Product
     {

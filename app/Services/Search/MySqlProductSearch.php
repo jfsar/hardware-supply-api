@@ -95,8 +95,15 @@ class MySqlProductSearch implements ProductSearch
                     'brand',
                     fn ($brand) => $brand->whereIn('brands.slug', $query->brandSlugs),
                 ),
+            )
+            // Availability flag only — sellable stock never leaves the server (FR-SRCH-005).
+            ->when(
+                $query->inStock,
+                fn (Builder $q) => $q->whereHas(
+                    'variants.inventories',
+                    fn ($inventory) => $inventory->whereRaw('quantity_on_hand - quantity_reserved > 0'),
+                ),
             );
-        // in_stock filter: intentionally a no-op until Phase 3 wires inventory.
     }
 
     /**

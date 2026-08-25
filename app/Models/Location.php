@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\LocationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -14,6 +16,9 @@ use Illuminate\Support\Str;
 ])]
 class Location extends Model
 {
+    /** @use HasFactory<LocationFactory> */
+    use HasFactory;
+
     /**
      * Bootstrap the model and its attributes.
      */
@@ -42,5 +47,17 @@ class Location extends Model
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
+    }
+
+    /**
+     * The seeded primary warehouse, or any active warehouse as fallback.
+     */
+    public static function primaryWarehouse(): ?self
+    {
+        return self::query()
+            ->where('is_active', true)
+            ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', ['MAIN-WH'])
+            ->orderBy('id')
+            ->first();
     }
 }

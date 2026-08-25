@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Actions\Catalog\CreateCategory;
 use App\Actions\Catalog\DeleteCategory;
 use App\Actions\Catalog\UpdateCategory;
+use App\Exceptions\Catalog\CategoryInUseException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\StoreCategoryRequest;
 use App\Http\Requests\Catalog\UpdateCategoryRequest;
@@ -73,6 +74,8 @@ class CategoryController extends Controller
 
     /**
      * Soft-delete the category when unused (categories.manage).
+     *
+     * @throws CategoryInUseException when the category has children or visible products
      */
     public function destroy(Request $request, Category $category, DeleteCategory $delete): JsonResponse
     {

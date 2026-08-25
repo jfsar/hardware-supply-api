@@ -13,8 +13,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class VariantResource extends JsonResource
 {
     /**
-     * Public variant payload; customer pricing arrives with Phase 4 and
-     * stock availability with Phase 3, so both render as null placeholders.
+     * Public variant payload; customer pricing arrives with Phase 4.
+     * Availability is a derived boolean only — raw counts stay server-side.
      *
      * @return array<string, mixed>
      */
@@ -24,10 +24,9 @@ class VariantResource extends JsonResource
             'ulid' => $this->ulid,
             'name' => $this->name,
             'is_default' => $this->is_default,
-            // Customer-facing prices resolve from the default price list in
-            // Phase 4; stock availability from inventory in Phase 3.
+            // Customer-facing prices resolve from the default price list in Phase 4.
             'price' => null,
-            'availability' => null,
+            'availability' => $this->isInStock(),
             'weight_grams' => $this->weight_grams,
             'dimensions' => [
                 'length_mm' => $this->length_mm,
@@ -46,7 +45,6 @@ class VariantResource extends JsonResource
                     ->values()
                     ->all(),
             ),
-            'availability' => null,
         ];
     }
 }

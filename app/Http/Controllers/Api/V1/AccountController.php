@@ -28,6 +28,10 @@ class AccountController extends Controller
 
     /**
      * Stream the customer's own generated export file via signed URL.
+     *
+     * The response body is the JSON export file itself (an attachment), not a
+     * data envelope. The `export` path segment must be the caller's ULID and
+     * the link must be signed.
      */
     public function download(Request $request, string $export): StreamedResponse
     {

@@ -28,6 +28,10 @@ class LoginUser
      * two-factor challenge when enabled for the account.
      *
      * @return array{token: string, user: User}
+     *
+     * @throws ValidationException when the credentials are invalid
+     * @throws SuspendedAccountException when the account is suspended
+     * @throws TwoFactorRequiredException when the account requires a two-factor code
      */
     public function __invoke(string $email, string $password, ?string $deviceName, Request $request): array
     {

@@ -153,10 +153,14 @@ behind a group tag.
 
 ## Acceptance Checklist
 
-- [ ] Every quantity change produces exactly one ledger row with correct before/after
-- [ ] Overselling impossible: concurrent reservation of final unit yields one success, one 409
-- [ ] Reservations expire automatically; released stock returns to available
-- [ ] Adjust endpoints enforce `inventory.view`/`inventory.adjust`; audited
-- [ ] Available quantity never stored, always derived (schema inspection)
-- [ ] Public APIs expose no raw stock counts beyond availability flag
-- [ ] Scheduled release job registered and observable in queue logs
+- [x] Every quantity change produces exactly one ledger row with correct before/after
+- [x] Overselling impossible: concurrent reservation of final unit yields one success, one 409
+- [x] Reservations expire automatically; released stock returns to available
+- [x] Adjust endpoints enforce `inventory.view`/`inventory.adjust`; audited
+- [x] Available quantity never stored, always derived (schema inspection)
+- [x] Public APIs expose no raw stock counts beyond availability flag
+- [x] Scheduled release job registered and observable in queue logs
+
+> Completed 2026-08-25. Ledger rows record on-hand before/after for stock movements and derived
+> availability for reservation movements. The admin adjust endpoint creates a missing inventory row
+> instead of 404ing so pre-existing variants (created before this phase) remain adjustable.

@@ -11,7 +11,7 @@ requirement IDs.
 |---|---|---|
 | 1 — Foundation | [phase-01-foundation.md](phase-01-foundation.md) | ✅ Complete (2026-08-23): migrations run, RBAC/geography/location/tax seeded, permission middleware live, profile/address/privacy APIs shipped |
 | 2 — Catalog | [phase-02-catalog.md](phase-02-catalog.md) | ✅ Complete (2026-08-25): catalog models/factories, admin product/category/brand lifecycle with audit logging, media uploads on Cloudflare R2 (`r2` disk, signed URLs), public browsing APIs, search contract with MySQL driver, OpenAPI extended, suite green (103 tests) |
-| 3 — Inventory | [phase-03-inventory.md](phase-03-inventory.md) | Not started |
+| 3 — Inventory | [phase-03-inventory.md](phase-03-inventory.md) | ✅ Complete (2026-08-25): inventory models/enums with immutable movement ledger, admin stock adjustment API (`inventory.view`/`inventory.adjust`), `ReserveStock`/`ConsumeStock`/`ReleaseStock` services with row locking and idempotent terminal guards, per-minute expiry sweep on the `inventory` queue (+ hourly safety net), observer-provisioned zero rows at MAIN-WH, public availability booleans + `in_stock` search filter wired, OpenAPI extended, suite green (137 tests) |
 | 4 — Commerce | [phase-04-commerce.md](phase-04-commerce.md) | Not started |
 | 5 — Payments | [phase-05-payments.md](phase-05-payments.md) | Not started |
 | 6 — Fulfillment | [phase-06-fulfillment.md](phase-06-fulfillment.md) | Not started |

@@ -9,6 +9,8 @@ use App\Actions\Auth\ResendEmailVerification;
 use App\Actions\Auth\ResetUserPassword;
 use App\Actions\Auth\SendPasswordResetLink;
 use App\Actions\Auth\VerifyUserEmail;
+use App\Exceptions\Auth\SuspendedAccountException;
+use App\Exceptions\Auth\TwoFactorRequiredException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
@@ -37,6 +39,9 @@ class AuthController extends Controller
 
     /**
      * Authenticate and issue a device session.
+     *
+     * @throws SuspendedAccountException when the account is suspended
+     * @throws TwoFactorRequiredException when the account requires a two-factor code
      */
     public function login(LoginRequest $request, LoginUser $loginUser): JsonResponse
     {

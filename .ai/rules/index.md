@@ -11,10 +11,12 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Exceptions/** | .ai/rules/exceptions.md |
 | docker-compose.yml | .ai/rules/general.md |
 | app/Http/** | .ai/rules/http.md |
+| app/Services/Inventory/** | .ai/rules/inventory.md |
 | app/Jobs/** | .ai/rules/jobs.md |
 | database/migrations/** | .ai/rules/migrations.md |
 | app/Models/** | .ai/rules/models.md |
 | app/Notifications/**, config/mail.php | .ai/rules/notifications.md |
+| app/OpenApi/** | .ai/rules/open-api.md |
 | app/Providers/** | .ai/rules/providers.md |
 | app/Http/Requests/** | .ai/rules/requests.md |
 | routes/api.php | .ai/rules/routes.md |

@@ -12,6 +12,7 @@ x-app-environment: &app-environment
   QUEUE_CONNECTION: redis
   SESSION_DRIVER: redis
   REDIS_HOST: redis
+  REDIS_PASSWORD: ""
   MAIL_MAILER: smtp
   MAIL_HOST: mailpit
   MAIL_PORT: "1025"
@@ -41,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    command: ["php", "artisan", "queue:work", "redis", "--tries=3", "--backoff=5"]
+    command: ["php", "artisan", "queue:work", "redis", "--queue=default,inventory", "--tries=3", "--backoff=5"]
     volumes:
       - .:/var/www/html
     environment: *app-environment

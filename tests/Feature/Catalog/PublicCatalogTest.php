@@ -72,7 +72,7 @@ class PublicCatalogTest extends TestCase
 
         $this->assertCount(1, $data['variants']);
         $this->assertArrayHasKey('price', $data['variants'][0]);
-        $this->assertNull($data['variants'][0]['availability']);
+        $this->assertFalse($data['variants'][0]['availability']);
         $this->assertSame(24, $data['warranty']['duration_months']);
         $this->assertSame('Steel', $data['specs'][0]['value']);
     }

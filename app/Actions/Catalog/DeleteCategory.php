@@ -16,6 +16,8 @@ class DeleteCategory
 
     /**
      * Soft-delete a category unless it still has children or visible products.
+     *
+     * @throws CategoryInUseException when the category has children or visible products
      */
     public function __invoke(User $actor, Category $category): void
     {
