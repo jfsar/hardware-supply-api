@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "afc3af117b466ea722383fc21c897f53",
+    "content-hash": "2d8e3d53b16d39941a72a3ffa216a72a",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -3014,6 +3014,51 @@
                 }
             ],
             "time": "2026-02-16T23:10:27+00:00"
+        },
+        {
+            "name": "payrex/payrex-php",
+            "version": "v1.8.7",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/payrexhq/payrex-php.git",
+                "reference": "a52f48a763f15c16ebf3e72156f748acd89470b0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/payrexhq/payrex-php/zipball/a52f48a763f15c16ebf3e72156f748acd89470b0",
+                "reference": "a52f48a763f15c16ebf3e72156f748acd89470b0",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "php": ">=5.6.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Payrex\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PayRex Product Engineering Team"
+                }
+            ],
+            "description": "PayRex PHP Library",
+            "support": {
+                "issues": "https://github.com/payrexhq/payrex-php/issues",
+                "source": "https://github.com/payrexhq/payrex-php/tree/v1.8.7"
+            },
+            "time": "2026-06-03T11:35:52+00:00"
         },
         {
             "name": "phpoption/phpoption",

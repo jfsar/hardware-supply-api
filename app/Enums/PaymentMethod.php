@@ -6,8 +6,8 @@ use App\Exceptions\Checkout\PaymentMethodUnavailableException;
 
 /**
  * Checkout payment methods (FR-CART-007 / SRS §19). COD settles on
- * delivery; gateway-driven methods initialize their flows in Phase 5 and
- * are rejected until then.
+ * delivery; gateway-driven methods open hosted checkout sessions through
+ * App\Contracts\PaymentGateway when enabled in config('payments.enabled').
  */
 enum PaymentMethod: string
 {
@@ -26,13 +26,18 @@ enum PaymentMethod: string
     }
 
     /**
-     * Phase 5 introduces gateway authorization flows.
+     * Gateway methods require an explicitly enabled payments stack
+     * (Phase 5); deployments may stay COD-only by leaving it off.
      *
-     * @throws PaymentMethodUnavailableException for gateway-driven methods
+     * @throws PaymentMethodUnavailableException for unavailable methods
      */
     public function assertAvailable(): void
     {
-        if ($this !== self::Cod) {
+        if ($this === self::Cod) {
+            return;
+        }
+
+        if ((bool) config('payments.enabled', false) === false) {
             throw PaymentMethodUnavailableException::forMethod($this);
         }
     }

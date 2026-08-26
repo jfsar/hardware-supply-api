@@ -58,6 +58,16 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        // Payment-domain observability (NFR-OBS-003): webhook ingestion
+        // outcomes, reconciliation drift, and exhausted retries.
+        'payments' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/payments.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),

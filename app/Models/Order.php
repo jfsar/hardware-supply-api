@@ -105,6 +105,14 @@ class Order extends Model
     }
 
     /**
+     * Refunds drawn against this order's captured payments.
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    /**
      * Stock reservations linked to this order by checkout or later flows.
      */
     public function reservations(): HasMany

@@ -179,7 +179,7 @@ class PlaceOrderTest extends TestCase
     }
 
     #[Test]
-    public function gateway_methods_are_rejected_until_phase_five(): void
+    public function gateway_methods_place_payrex_payments_when_enabled(): void
     {
         $variant = $this->pricedVariant(25000);
         $added = $this->postJson('/api/v1/cart/items', ['variant' => $variant->ulid, 'quantity' => 1]);
@@ -189,8 +189,43 @@ class PlaceOrderTest extends TestCase
             ->withHeader('Idempotency-Key', 'gw-val')
             ->postJson('/api/v1/checkout/validate');
 
-        $this->withHeader('Cart-Token', $token)
+        $placed = $this->withHeader('Cart-Token', $token)
             ->withHeader('Idempotency-Key', 'gw-place')
+            ->postJson('/api/v1/checkout', [
+                'payment_method' => 'card',
+                'contact_email' => 'guest@example.test',
+                'address' => $this->shippingAddress(),
+                'checkout_token' => $validated->json('data.checkout_token'),
+            ]);
+
+        // Phase 5: gateway methods open their flow after placement.
+        $placed->assertCreated();
+
+        $order = Order::query()->where('ulid', $placed->json('data.order.ulid'))->firstOrFail();
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'provider' => 'payrex',
+            'payment_method' => 'card',
+            'status' => 'pending',
+            'amount_minor' => 25000,
+        ]);
+    }
+
+    #[Test]
+    public function gateway_methods_are_rejected_when_the_stack_is_disabled(): void
+    {
+        config(['payments.enabled' => false]);
+
+        $variant = $this->pricedVariant(25000);
+        $added = $this->postJson('/api/v1/cart/items', ['variant' => $variant->ulid, 'quantity' => 1]);
+        $token = $this->cartTokenFromResponse($added);
+
+        $validated = $this->withHeader('Cart-Token', $token)
+            ->withHeader('Idempotency-Key', 'gwd-val')
+            ->postJson('/api/v1/checkout/validate');
+
+        $this->withHeader('Cart-Token', $token)
+            ->withHeader('Idempotency-Key', 'gwd-place')
             ->postJson('/api/v1/checkout', [
                 'payment_method' => 'card',
                 'contact_email' => 'guest@example.test',

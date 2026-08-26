@@ -5,6 +5,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | Applies to | Rule file |
 | --- | --- |
 | app/Actions/** | .ai/rules/actions.md |
+| app/** | .ai/rules/app.md |
 | app/Actions/Catalog/** | .ai/rules/catalog.md |
 | app/Http/Controllers/** | .ai/rules/controllers.md |
 | app/Enums/** | .ai/rules/enums.md |
@@ -13,6 +14,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Http/** | .ai/rules/http.md |
 | app/Services/Inventory/** | .ai/rules/inventory.md |
 | app/Jobs/** | .ai/rules/jobs.md |
+| app/Listeners/** | .ai/rules/listeners.md |
 | app/Http/Middleware/** | .ai/rules/middleware.md |
 | database/migrations/** | .ai/rules/migrations.md |
 | app/Models/** | .ai/rules/models.md |

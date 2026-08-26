@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController;
+use App\Http\Controllers\Api\V1\Admin\RefundController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\Catalog\CategoryController as PublicCategoryController;
@@ -14,9 +15,11 @@ use App\Http\Controllers\Api\V1\Catalog\ProductController as PublicProductContro
 use App\Http\Controllers\Api\V1\Catalog\SearchAutocompleteController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SessionController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
+use App\Http\Controllers\Api\V1\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -63,6 +66,11 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:account'])->group(funct
     Route::post('/account/delete-request', [AccountController::class, 'requestDeletion'])->name('account.delete.request');
 });
 
+// Inbound provider webhooks (Phase 5): unauthenticated, signature-verified,
+// provider-aware rate limit. Raw body is consumed by the controller.
+Route::post('/webhooks/payrex', WebhookController::class)
+    ->middleware('throttle:webhooks');
+
 // Admin catalog management (Phase 2).
 Route::prefix('admin')->middleware(['auth:sanctum', 'throttle:admin'])->group(function (): void {
     Route::get('/products', [ProductController::class, 'index'])
@@ -107,6 +115,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'throttle:admin'])->group(fu
         ->middleware('permission:inventory.view');
     Route::post('/inventory/{variant}/adjust', [InventoryController::class, 'adjust'])
         ->middleware('permission:inventory.adjust');
+
+    // Payment refunds (Phase 5).
+    Route::post('/payments/{payment}/refund', [RefundController::class, 'store'])
+        ->middleware('permission:orders.refund');
 });
 
 // Public catalog browsing (Phase 2).
@@ -151,4 +163,16 @@ Route::prefix('orders')
             ->middleware('idempotency:orders.cancel');
         Route::post('/{order}/cancel-items', [OrderController::class, 'cancelItems'])
             ->middleware('idempotency:orders.cancel_items');
+        Route::post('/{order}/payments', [PaymentController::class, 'store'])
+            ->middleware('idempotency:orders.payments');
+    });
+
+// Commerce (Phase 5): gateway payment lifecycle (owner-scoped, idempotent).
+Route::prefix('payments')
+    ->middleware(['auth:sanctum', 'verified', 'throttle:orders'])
+    ->group(function (): void {
+        Route::post('/{payment}/retry', [PaymentController::class, 'retry'])
+            ->middleware('idempotency:payments.retry');
+        Route::post('/{payment}/cancel', [PaymentController::class, 'cancel'])
+            ->middleware('idempotency:payments.cancel');
     });

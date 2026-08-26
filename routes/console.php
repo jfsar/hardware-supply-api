@@ -19,3 +19,11 @@ Schedule::job(new ReleaseExpiredReservations, 'inventory')
 Schedule::job(new ReleaseExpiredReservations, 'inventory')
     ->hourly()
     ->name('inventory:release-expired-reservations-sweep');
+
+// Gateway reconciliation sweep (Phase 5 Task 6): the failure detector for
+// provider states that never arrive as webhooks. Nightly, overlap-safe.
+Schedule::command('payments:reconcile')
+    ->dailyAt('02:30')
+    ->name('payments:reconcile')
+    ->withoutOverlapping()
+    ->onOneServer();

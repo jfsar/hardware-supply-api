@@ -15,6 +15,12 @@ use App\Exceptions\Http\IdempotencyKeyRequiredException;
 use App\Exceptions\Inventory\InsufficientStockException;
 use App\Exceptions\Inventory\NegativeStockException;
 use App\Exceptions\Orders\OrderStateException;
+use App\Exceptions\Payments\PaymentBackoffException;
+use App\Exceptions\Payments\PaymentMaxAttemptsException;
+use App\Exceptions\Payments\PaymentStateException;
+use App\Exceptions\Payments\ProviderException;
+use App\Exceptions\Payments\RefundExceedsBalanceException;
+use App\Exceptions\Payments\WebhookSignatureException;
 use App\Exceptions\Pricing\CouponException;
 use App\Exceptions\Pricing\PriceUnavailableException;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -109,6 +115,30 @@ class ApiExceptionRenderer
 
         if ($exception instanceof OrderStateException) {
             return [409, 'ORDER_STATE_INVALID', $exception->details()];
+        }
+
+        if ($exception instanceof PaymentStateException) {
+            return [409, 'PAYMENT_STATE_INVALID', $exception->details()];
+        }
+
+        if ($exception instanceof PaymentMaxAttemptsException) {
+            return [409, 'PAYMENT_MAX_ATTEMPTS_REACHED', []];
+        }
+
+        if ($exception instanceof PaymentBackoffException) {
+            return [429, 'PAYMENT_RETRY_BACKOFF', $exception->details()];
+        }
+
+        if ($exception instanceof RefundExceedsBalanceException) {
+            return [409, 'REFUND_EXCEEDS_BALANCE', $exception->details()];
+        }
+
+        if ($exception instanceof ProviderException) {
+            return [502, 'PROVIDER_UNAVAILABLE', []];
+        }
+
+        if ($exception instanceof WebhookSignatureException) {
+            return [401, 'WEBHOOK_SIGNATURE_INVALID', []];
         }
 
         if ($exception instanceof IdempotencyKeyRequiredException) {

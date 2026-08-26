@@ -2,19 +2,19 @@
 
 namespace App\Providers;
 
+use App\Contracts\PaymentGateway;
 use App\Contracts\ProductSearch;
 use App\Contracts\ShippingCalculator;
 use App\Contracts\TaxCalculator;
-use App\Events\OrderCreated;
-use App\Events\UserLoggedIn;
-use App\Listeners\MergeGuestCartOnLogin;
-use App\Listeners\SendOrderConfirmation;
 use App\Models\CartItem;
 use App\Models\CheckoutSession;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Observers\InventoryObserver;
+use App\Services\Payments\FakePaymentGateway;
+use App\Services\Payments\PayrexPaymentGateway;
+use App\Services\Payments\SignatureVerifier;
 use App\Services\PermissionCache;
 use App\Services\Pricing\CartTotalsCalculator;
 use App\Services\Search\MySqlProductSearch;
@@ -24,10 +24,10 @@ use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\RouteInfo;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +44,30 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ShippingCalculator::class, FlatShippingCalculator::class);
         $this->app->singleton(TaxCalculator::class, PhVatTaxCalculator::class);
         $this->app->singleton(CartTotalsCalculator::class);
+        $this->app->singleton(SignatureVerifier::class, fn (): SignatureVerifier => new SignatureVerifier(
+            (int) config('payments.payrex.webhook_tolerance', 300),
+        ));
+
+        // Gateway selection (Phase 5 Task 2): explicit config wins; then
+        // fake mode or a missing secret key keeps environments credential-
+        // free; otherwise the real PayRex adapter.
+        $this->app->singleton(PaymentGateway::class, function (Application $app): PaymentGateway {
+            $configured = config('payments.gateway');
+
+            if (is_string($configured) && $configured !== '') {
+                /** @var PaymentGateway */
+                return $app->make($configured);
+            }
+
+            if (config('payments.fake_mode') || blank(config('payments.payrex.secret_key'))) {
+                return new FakePaymentGateway($app->make(SignatureVerifier::class));
+            }
+
+            return new PayrexPaymentGateway(
+                (string) config('payments.payrex.secret_key'),
+                $app->make(SignatureVerifier::class),
+            );
+        });
     }
 
     /**
@@ -58,7 +82,6 @@ class AppServiceProvider extends ServiceProvider
         $this->configureVariantBinding();
         $this->configureCheckoutSessionBinding();
         $this->configureInventoryObserver();
-        $this->configureEventListeners();
         $this->configureScrambleDocumentation();
     }
 
@@ -106,13 +129,11 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Domain event wiring for commerce flows (Phase 4 Task 10).
+     * Domain event wiring: listeners under app/Listeners are discovered
+     * automatically by Laravel's event discovery (their handle() event
+     * type-hints bind them). Do NOT also register them manually here —
+     * that double-fires every notification (verified via OrderCreated).
      */
-    private function configureEventListeners(): void
-    {
-        Event::listen(OrderCreated::class, SendOrderConfirmation::class);
-        Event::listen(UserLoggedIn::class, MergeGuestCartOnLogin::class);
-    }
 
     /**
      * Group documented operations into stable tags by URI segment.
@@ -131,6 +152,8 @@ class AppServiceProvider extends ServiceProvider
                 str_starts_with($uri, 'api/v1/address') => ['Account · Address'],
                 str_starts_with($uri, 'api/v1/checkout') => ['Checkout'],
                 str_starts_with($uri, 'api/v1/orders') => ['Orders'],
+                str_starts_with($uri, 'api/v1/payments') => ['Payments'],
+                str_starts_with($uri, 'api/v1/webhooks') => ['Webhooks'],
                 str_starts_with($uri, 'api/v1/cart') => ['Cart'],
                 str_starts_with($uri, 'api/v1/search') => ['Catalog · Search'],
                 default => ['Catalog'],
@@ -169,6 +192,10 @@ class AppServiceProvider extends ServiceProvider
             ->by(optional($request->user())->id ?? $request->attributes->get('cart_token', $request->ip())));
 
         RateLimiter::for('orders', fn (Request $request) => Limit::perMinute(30)->by($request->user()?->id ?? $request->ip()));
+
+        // Inbound provider webhooks: keyed by IP, generous ceiling — the
+        // signature check is the real gate (SRS §20).
+        RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(300)->by($request->ip()));
     }
 
     /**
