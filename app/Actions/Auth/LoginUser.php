@@ -3,8 +3,10 @@
 namespace App\Actions\Auth;
 
 use App\Enums\SecuritySeverity;
+use App\Events\UserLoggedIn;
 use App\Exceptions\Auth\SuspendedAccountException;
 use App\Exceptions\Auth\TwoFactorRequiredException;
+use App\Http\Middleware\ResolveCartToken;
 use App\Models\User;
 use App\Services\RecordSecurityEvent;
 use App\Services\Totp;
@@ -178,6 +180,10 @@ class LoginUser
         $user->forceFill(['last_login_at' => now()])->save();
 
         ($this->recordSecurityEvent)($user, 'login_success');
+
+        // Custom domain event: Sanctum logins never fire the framework's
+        // Login event, so commerce hooks (guest cart merge) listen here.
+        event(new UserLoggedIn($user, $request->attributes->get(ResolveCartToken::HASH_ATTRIBUTE)));
 
         return ['token' => $token, 'user' => $user];
     }

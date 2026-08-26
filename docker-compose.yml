@@ -42,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    command: ["php", "artisan", "queue:work", "redis", "--queue=default,inventory", "--tries=3", "--backoff=5"]
+    command: ["php", "artisan", "queue:work", "redis", "--queue=default,inventory,notifications", "--tries=3", "--backoff=5"]
     volumes:
       - .:/var/www/html
     environment: *app-environment
@@ -106,3 +106,4 @@ services:
 volumes:
   db-data:
   redis-data:
+

@@ -4,10 +4,19 @@ namespace App\OpenApi\Extensions;
 
 use App\Exceptions\Auth\SuspendedAccountException;
 use App\Exceptions\Auth\TwoFactorRequiredException;
+use App\Exceptions\Cart\VariantNotPurchasableException;
 use App\Exceptions\Catalog\CategoryInUseException;
 use App\Exceptions\Catalog\ProductNotPublishableException;
+use App\Exceptions\Checkout\CartEmptyException;
+use App\Exceptions\Checkout\CheckoutTotalsChangedException;
+use App\Exceptions\Checkout\PaymentMethodUnavailableException;
+use App\Exceptions\Http\IdempotencyConflictException;
+use App\Exceptions\Http\IdempotencyKeyRequiredException;
 use App\Exceptions\Inventory\InsufficientStockException;
 use App\Exceptions\Inventory\NegativeStockException;
+use App\Exceptions\Orders\OrderStateException;
+use App\Exceptions\Pricing\CouponException;
+use App\Exceptions\Pricing\PriceUnavailableException;
 use App\OpenApi\ErrorEnvelope;
 use Dedoc\Scramble\Extensions\ExceptionToResponseExtension;
 use Dedoc\Scramble\Support\Generator\Reference;
@@ -47,6 +56,15 @@ abstract class ApiErrorEnvelopeExtension extends ExceptionToResponseExtension
         CategoryInUseException::class,
         InsufficientStockException::class,
         NegativeStockException::class,
+        VariantNotPurchasableException::class,
+        PriceUnavailableException::class,
+        CouponException::class,
+        CheckoutTotalsChangedException::class,
+        CartEmptyException::class,
+        PaymentMethodUnavailableException::class,
+        OrderStateException::class,
+        IdempotencyKeyRequiredException::class,
+        IdempotencyConflictException::class,
     ];
 
     abstract protected function status(): int;

@@ -10,3 +10,6 @@ Controllers stay thin: inject FormRequests and Actions as controller-method para
 
 ## Document domain exceptions with @throws on controllers
 Scramble reads @throws only from controller methods, not from Action __invoke bodies. When an invoked Action can throw a domain exception (e.g. TwoFactorRequiredException, CategoryInUseException), add a `@throws \App\Exceptions\...` tag to the controller method docblock so the docs show that response. Factory-thrown exceptions (TwoFactorRequiredException::withChallengeToken) are otherwise invisible to static inference.
+
+## Resolve users via auth('sanctum') on guest-allowed routes
+config('auth.defaults.guard') is web. On any route that does NOT run auth:sanctum middleware (guest-allowed cart/checkout endpoints), $request->user() resolves against the web guard and returns null even with a valid bearer token. Use auth('sanctum')->user() there instead.

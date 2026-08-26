@@ -8,9 +8,12 @@ use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\Catalog\CategoryController as PublicCategoryController;
 use App\Http\Controllers\Api\V1\Catalog\ProductController as PublicProductController;
 use App\Http\Controllers\Api\V1\Catalog\SearchAutocompleteController;
+use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SessionController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
@@ -117,3 +120,35 @@ Route::get('/products', [PublicProductController::class, 'index'])->middleware('
 Route::get('/products/{slug}', [PublicProductController::class, 'show'])->middleware('throttle:search');
 Route::get('/products/{slug}/related', [PublicProductController::class, 'related'])->middleware('throttle:search');
 Route::get('/products/{slug}/reviews', [PublicProductController::class, 'reviews'])->middleware('throttle:search');
+
+// Commerce (Phase 4): guest-accessible cart.
+Route::prefix('cart')->middleware('throttle:cart')->group(function (): void {
+    Route::get('/', [CartController::class, 'show']);
+    Route::post('/items', [CartController::class, 'storeItem']);
+    Route::patch('/items/{item}', [CartController::class, 'updateItem']);
+    Route::delete('/items/{item}', [CartController::class, 'destroyItem']);
+    Route::delete('/', [CartController::class, 'destroy']);
+    Route::post('/coupon', [CartController::class, 'storeCoupon']);
+    Route::delete('/coupon', [CartController::class, 'destroyCoupon']);
+});
+
+// Commerce (Phase 4): checkout (guest-allowed, idempotent).
+Route::middleware('throttle:checkout')->group(function (): void {
+    Route::post('/checkout/validate', [CheckoutController::class, 'validate'])
+        ->middleware('idempotency:checkout.validate');
+    Route::post('/checkout', [CheckoutController::class, 'place'])
+        ->middleware('idempotency:checkout.place');
+    Route::get('/checkout/{checkout}', [CheckoutController::class, 'show']);
+});
+
+// Commerce (Phase 4): customer orders (owner-scoped).
+Route::prefix('orders')
+    ->middleware(['auth:sanctum', 'verified', 'throttle:orders'])
+    ->group(function (): void {
+        Route::get('/', [OrderController::class, 'index']);
+        Route::get('/{order}', [OrderController::class, 'show']);
+        Route::post('/{order}/cancel', [OrderController::class, 'cancel'])
+            ->middleware('idempotency:orders.cancel');
+        Route::post('/{order}/cancel-items', [OrderController::class, 'cancelItems'])
+            ->middleware('idempotency:orders.cancel_items');
+    });

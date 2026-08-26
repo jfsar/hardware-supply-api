@@ -37,6 +37,6 @@ final class InsufficientStockEnvelopeExtension extends ApiErrorEnvelopeExtension
 
         return (new OpenApiTypes\ObjectType)
             ->addProperty('skus', new OpenApiTypes\ArrayType($skus))
-            ->addRequired('skus');
+            ->addRequired(['skus']);
     }
 }

@@ -4,13 +4,23 @@ namespace App\Http\Exceptions;
 
 use App\Exceptions\Auth\SuspendedAccountException;
 use App\Exceptions\Auth\TwoFactorRequiredException;
+use App\Exceptions\Cart\VariantNotPurchasableException;
 use App\Exceptions\Catalog\CategoryInUseException;
 use App\Exceptions\Catalog\ProductNotPublishableException;
+use App\Exceptions\Checkout\CartEmptyException;
+use App\Exceptions\Checkout\CheckoutTotalsChangedException;
+use App\Exceptions\Checkout\PaymentMethodUnavailableException;
+use App\Exceptions\Http\IdempotencyConflictException;
+use App\Exceptions\Http\IdempotencyKeyRequiredException;
 use App\Exceptions\Inventory\InsufficientStockException;
 use App\Exceptions\Inventory\NegativeStockException;
+use App\Exceptions\Orders\OrderStateException;
+use App\Exceptions\Pricing\CouponException;
+use App\Exceptions\Pricing\PriceUnavailableException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,6 +81,50 @@ class ApiExceptionRenderer
 
         if ($exception instanceof NegativeStockException) {
             return [409, 'STOCK_NEGATIVE_NOT_ALLOWED', ['sku' => $exception->sku]];
+        }
+
+        if ($exception instanceof VariantNotPurchasableException) {
+            return [409, 'VARIANT_NOT_PURCHASABLE', $exception->details()];
+        }
+
+        if ($exception instanceof PriceUnavailableException) {
+            return [409, 'PRICE_UNAVAILABLE', $exception->details()];
+        }
+
+        if ($exception instanceof CouponException) {
+            return [409, $exception->errorCode, []];
+        }
+
+        if ($exception instanceof CheckoutTotalsChangedException) {
+            return [409, 'CHECKOUT_TOTALS_CHANGED', []];
+        }
+
+        if ($exception instanceof CartEmptyException) {
+            return [409, 'CART_EMPTY', []];
+        }
+
+        if ($exception instanceof PaymentMethodUnavailableException) {
+            return [422, 'PAYMENT_METHOD_UNAVAILABLE', $exception->details()];
+        }
+
+        if ($exception instanceof OrderStateException) {
+            return [409, 'ORDER_STATE_INVALID', $exception->details()];
+        }
+
+        if ($exception instanceof IdempotencyKeyRequiredException) {
+            return [422, 'IDEMPOTENCY_KEY_REQUIRED', []];
+        }
+
+        if ($exception instanceof IdempotencyConflictException) {
+            return [409, 'IDEMPOTENCY_CONFLICT', []];
+        }
+
+        // A lost race on the idempotency unique index means a duplicate
+        // financial request executed concurrently; refuse it as conflict.
+        if ($exception instanceof QueryException
+            && str_contains($exception->getMessage(), 'idempotency_keys_user_id_endpoint_key_unique')
+        ) {
+            return [409, 'IDEMPOTENCY_CONFLICT', []];
         }
 
         if ($exception instanceof ValidationException) {

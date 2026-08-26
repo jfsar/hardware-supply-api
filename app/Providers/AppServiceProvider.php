@@ -3,12 +3,23 @@
 namespace App\Providers;
 
 use App\Contracts\ProductSearch;
+use App\Contracts\ShippingCalculator;
+use App\Contracts\TaxCalculator;
+use App\Events\OrderCreated;
+use App\Events\UserLoggedIn;
+use App\Listeners\MergeGuestCartOnLogin;
+use App\Listeners\SendOrderConfirmation;
+use App\Models\CartItem;
+use App\Models\CheckoutSession;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Observers\InventoryObserver;
 use App\Services\PermissionCache;
+use App\Services\Pricing\CartTotalsCalculator;
 use App\Services\Search\MySqlProductSearch;
+use App\Services\Shipping\FlatShippingCalculator;
+use App\Services\Tax\PhVatTaxCalculator;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\Operation;
 use Dedoc\Scramble\Support\RouteInfo;
@@ -16,6 +27,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +41,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ProductSearch::class, MySqlProductSearch::class);
+        $this->app->singleton(ShippingCalculator::class, FlatShippingCalculator::class);
+        $this->app->singleton(TaxCalculator::class, PhVatTaxCalculator::class);
+        $this->app->singleton(CartTotalsCalculator::class);
     }
 
     /**
@@ -41,7 +56,9 @@ class AppServiceProvider extends ServiceProvider
         $this->configurePermissionCacheInvalidation();
         $this->configureProductBinding();
         $this->configureVariantBinding();
+        $this->configureCheckoutSessionBinding();
         $this->configureInventoryObserver();
+        $this->configureEventListeners();
         $this->configureScrambleDocumentation();
     }
 
@@ -66,11 +83,35 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * Checkout status lookups resolve sessions by ULID.
+     */
+    private function configureCheckoutSessionBinding(): void
+    {
+        Route::bind('checkout', fn (string $value): CheckoutSession => CheckoutSession::query()
+            ->where('ulid', $value)
+            ->firstOrFail());
+
+        // Cart lines are child rows without ULIDs; bind by primary key.
+        Route::bind('item', fn (string $value): CartItem => CartItem::query()
+            ->whereKey($value)
+            ->firstOrFail());
+    }
+
+    /**
      * Every new variant gets a zero-quantity stock row at the primary warehouse.
      */
     private function configureInventoryObserver(): void
     {
         ProductVariant::observe(InventoryObserver::class);
+    }
+
+    /**
+     * Domain event wiring for commerce flows (Phase 4 Task 10).
+     */
+    private function configureEventListeners(): void
+    {
+        Event::listen(OrderCreated::class, SendOrderConfirmation::class);
+        Event::listen(UserLoggedIn::class, MergeGuestCartOnLogin::class);
     }
 
     /**
@@ -88,6 +129,9 @@ class AppServiceProvider extends ServiceProvider
                 str_starts_with($uri, 'api/v1/auth') => ['Auth'],
                 str_starts_with($uri, 'api/v1/account') => ['Account'],
                 str_starts_with($uri, 'api/v1/address') => ['Account · Address'],
+                str_starts_with($uri, 'api/v1/checkout') => ['Checkout'],
+                str_starts_with($uri, 'api/v1/orders') => ['Orders'],
+                str_starts_with($uri, 'api/v1/cart') => ['Cart'],
                 str_starts_with($uri, 'api/v1/search') => ['Catalog · Search'],
                 default => ['Catalog'],
             };
@@ -117,6 +161,14 @@ class AppServiceProvider extends ServiceProvider
             ->by(optional($request->user())->id ?? $request->ip()));
 
         RateLimiter::for('search', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+
+        RateLimiter::for('cart', fn (Request $request) => Limit::perMinute(60)
+            ->by(optional($request->user())->id ?? $request->attributes->get('cart_token', $request->ip())));
+
+        RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(10)
+            ->by(optional($request->user())->id ?? $request->attributes->get('cart_token', $request->ip())));
+
+        RateLimiter::for('orders', fn (Request $request) => Limit::perMinute(30)->by($request->user()?->id ?? $request->ip()));
     }
 
     /**
