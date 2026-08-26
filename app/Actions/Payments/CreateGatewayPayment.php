@@ -184,8 +184,10 @@ class CreateGatewayPayment
             currency: (string) $payment->currency_code,
             description: __('Order :number', ['number' => $order->order_number]),
             paymentMethods: array_values((array) config('payments.methods.'.$payment->method()->value, [])),
-            successUrl: str_replace('{order}', (string) $order->ulid, (string) config('payments.redirect_urls.success')),
-            cancelUrl: (string) config('payments.redirect_urls.cancel'),
+            // Providers require fully qualified redirect targets; config may
+            // hold app-relative paths with an {order} placeholder.
+            successUrl: url(str_replace('{order}', (string) $order->ulid, (string) config('payments.redirect_urls.success'))),
+            cancelUrl: url((string) config('payments.redirect_urls.cancel')),
             metadata: [
                 'payment_ulid' => (string) $payment->ulid,
                 'order_number' => (string) $order->order_number,

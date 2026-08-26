@@ -112,7 +112,9 @@ trait ManagesPayments
     }
 
     /**
-     * A payment_intent.succeeded event envelope.
+     * A payment_intent.succeeded event envelope in PayRex's RAW inline
+     * layout (snapshot fields directly under data; "resource" is a string
+     * discriminator) — captured live from the sandbox on 2026-08-26.
      *
      * @return array<string, mixed>
      */
@@ -125,11 +127,12 @@ trait ManagesPayments
             'pending_webhooks' => 1,
             'previous_attributes' => ['status' => 'awaiting_next_action'],
             'data' => [
-                'resource' => [
-                    'id' => $intentId,
-                    'resource' => 'payment_intent',
-                    'status' => 'succeeded',
-                ],
+                'id' => $intentId,
+                'resource' => 'payment_intent',
+                'status' => 'succeeded',
+                'amount' => 28000,
+                'currency' => 'PHP',
+                'livemode' => false,
             ],
             'created_at' => time(),
             'updated_at' => time(),
@@ -137,7 +140,8 @@ trait ManagesPayments
     }
 
     /**
-     * A checkout_session.expired event envelope.
+     * A checkout_session.expired event envelope in the documented NESTED
+     * layout — kept deliberately so both provider layouts stay covered.
      *
      * @return array<string, mixed>
      */
@@ -161,7 +165,7 @@ trait ManagesPayments
     }
 
     /**
-     * A refund.updated event envelope.
+     * A refund.updated event envelope in the raw inline layout.
      *
      * @return array<string, mixed>
      */
@@ -173,11 +177,9 @@ trait ManagesPayments
             'livemode' => false,
             'pending_webhooks' => 1,
             'data' => [
-                'resource' => [
-                    'id' => $refundId,
-                    'resource' => 'refund',
-                    'status' => $status,
-                ],
+                'id' => $refundId,
+                'resource' => 'refund',
+                'status' => $status,
             ],
             'created_at' => time(),
             'updated_at' => time(),

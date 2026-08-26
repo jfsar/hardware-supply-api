@@ -16,6 +16,7 @@ use App\Models\PaymentWebhook;
 use App\Models\Refund;
 use App\Services\Inventory\ConsumeStock;
 use App\Services\Inventory\ReleaseStock;
+use App\Services\Payments\WebhookEvent;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -341,16 +342,17 @@ class ProcessPayrexWebhook implements ShouldQueue
     }
 
     /**
-     * The resource snapshot carried by the stored payload.
+     * The resource snapshot carried by the stored payload. Tolerates the
+     * documented nested layout and PayRex's raw inline layout (verified
+     * live: data holds id/status directly, "resource" is a string tag).
      *
      * @return array<string, mixed>
      */
     protected function resource(PaymentWebhook $webhook): array
     {
         $data = $webhook->payload['data'] ?? null;
-        $resource = is_array($data) ? ($data['resource'] ?? null) : null;
 
-        return is_array($resource) ? $resource : [];
+        return is_array($data) ? WebhookEvent::extractResource($data) : [];
     }
 
     protected function markProcessed(PaymentWebhook $webhook): void
