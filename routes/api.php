@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\Admin\BrandController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
+use App\Http\Controllers\Api\V1\Admin\FulfillmentController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController;
@@ -119,6 +120,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'throttle:admin'])->group(fu
     // Payment refunds (Phase 5).
     Route::post('/payments/{payment}/refund', [RefundController::class, 'store'])
         ->middleware('permission:orders.refund');
+
+    // Fulfillment (Phase 6 Task 4).
+    Route::get('/orders/{order}', [FulfillmentController::class, 'show'])
+        ->middleware('permission:orders.view');
+    Route::post('/orders/{order}/fulfill', [FulfillmentController::class, 'fulfill'])
+        ->middleware('permission:orders.fulfill');
+    Route::patch('/shipments/{shipment}/tracking', [FulfillmentController::class, 'tracking'])
+        ->middleware('permission:orders.fulfill');
 });
 
 // Public catalog browsing (Phase 2).
@@ -159,6 +168,7 @@ Route::prefix('orders')
     ->group(function (): void {
         Route::get('/', [OrderController::class, 'index']);
         Route::get('/{order}', [OrderController::class, 'show']);
+        Route::get('/{order}/shipments', [OrderController::class, 'shipments']);
         Route::post('/{order}/cancel', [OrderController::class, 'cancel'])
             ->middleware('idempotency:orders.cancel');
         Route::post('/{order}/cancel-items', [OrderController::class, 'cancelItems'])

@@ -44,7 +44,13 @@ class CheckoutController extends Controller
     ): JsonResponse {
         $cart = ($resolveCart)($this->userId($request), $this->tokenHash($request), true);
 
-        $result = ($validateCheckout)($cart, auth('sanctum')->user());
+        $result = ($validateCheckout)(
+            $cart,
+            auth('sanctum')->user(),
+            $request->input('shipping_method_code'),
+            $request->integer('pickup_location_id') ?: null,
+            $request->input('address'),
+        );
 
         return response()->json(['data' => [
             'checkout_session' => new CheckoutResource($result['session']),
@@ -80,8 +86,10 @@ class CheckoutController extends Controller
             (string) $request->input('payment_method'),
             strtolower(trim((string) (auth('sanctum')->user()?->email ?? $request->input('contact_email')))),
             $request->input('contact_phone'),
-            (array) $request->input('address', []),
+            $request->input('address'),
             (string) $request->input('checkout_token'),
+            $request->input('shipping_method_code'),
+            $request->integer('pickup_location_id') ?: null,
             $recorder,
         );
 

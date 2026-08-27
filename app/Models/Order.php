@@ -119,4 +119,12 @@ class Order extends Model
     {
         return $this->hasMany(InventoryReservation::class, 'order_id');
     }
+
+    /**
+     * Fulfillment shipments for this order (Phase 6 Task 4).
+     */
+    public function shipments(): HasMany
+    {
+        return $this->hasMany(Shipment::class)->latest();
+    }
 }

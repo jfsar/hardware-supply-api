@@ -18,7 +18,7 @@ use App\Services\Payments\SignatureVerifier;
 use App\Services\PermissionCache;
 use App\Services\Pricing\CartTotalsCalculator;
 use App\Services\Search\MySqlProductSearch;
-use App\Services\Shipping\FlatShippingCalculator;
+use App\Services\Shipping\PhpRateCalculator;
 use App\Services\Tax\PhVatTaxCalculator;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\Operation;
@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ProductSearch::class, MySqlProductSearch::class);
-        $this->app->singleton(ShippingCalculator::class, FlatShippingCalculator::class);
+        $this->app->singleton(ShippingCalculator::class, PhpRateCalculator::class);
         $this->app->singleton(TaxCalculator::class, PhVatTaxCalculator::class);
         $this->app->singleton(CartTotalsCalculator::class);
         $this->app->singleton(SignatureVerifier::class, fn (): SignatureVerifier => new SignatureVerifier(

@@ -54,6 +54,7 @@ class OrderResource extends JsonResource
                     'changed_by_user_id' => $history->changed_by_user_id,
                     'created_at' => optional($history->created_at)->toISOString(),
                 ])->all()),
+            'shipments' => ShipmentResource::collection($this->whenLoaded('shipments')),
         ];
     }
 }

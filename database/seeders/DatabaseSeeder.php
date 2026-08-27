@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TaxClassSeeder::class,
             LocationSeeder::class,
+            ShippingSeeder::class,
         ]);
     }
 }

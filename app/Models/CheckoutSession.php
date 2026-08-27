@@ -12,7 +12,8 @@ use Illuminate\Support\Str;
 
 #[Fillable([
     'cart_id', 'user_id', 'status', 'currency_code', 'subtotal_minor', 'discount_minor',
-    'shipping_minor', 'tax_minor', 'total_minor', 'shipping_method_id', 'pickup_location_id',
+    'shipping_minor', 'shipping_estimated_min_days', 'shipping_estimated_max_days',
+    'tax_minor', 'total_minor', 'shipping_method_id', 'pickup_location_id',
     'address_snapshot', 'expires_at', 'completed_at',
 ])]
 class CheckoutSession extends Model
@@ -40,6 +41,8 @@ class CheckoutSession extends Model
         return [
             'status' => CheckoutSessionStatus::class,
             'address_snapshot' => 'array',
+            'shipping_estimated_min_days' => 'integer',
+            'shipping_estimated_max_days' => 'integer',
             'expires_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
@@ -64,5 +67,21 @@ class CheckoutSession extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'checkout_session_id');
+    }
+
+    /**
+     * The shipping method selected during validation (Phase 6 Task 3).
+     */
+    public function shippingMethod(): BelongsTo
+    {
+        return $this->belongsTo(ShippingMethod::class);
+    }
+
+    /**
+     * The pickup location selected when shipping by pickup.
+     */
+    public function pickupLocation(): BelongsTo
+    {
+        return $this->belongsTo(PickupLocation::class);
     }
 }

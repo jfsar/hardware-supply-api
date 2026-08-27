@@ -23,6 +23,7 @@ use App\Exceptions\Payments\RefundExceedsBalanceException;
 use App\Exceptions\Payments\WebhookSignatureException;
 use App\Exceptions\Pricing\CouponException;
 use App\Exceptions\Pricing\PriceUnavailableException;
+use App\Exceptions\Shipping\ShippingRateNotFoundException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -139,6 +140,10 @@ class ApiExceptionRenderer
 
         if ($exception instanceof WebhookSignatureException) {
             return [401, 'WEBHOOK_SIGNATURE_INVALID', []];
+        }
+
+        if ($exception instanceof ShippingRateNotFoundException) {
+            return [422, 'SHIPPING_RATE_UNAVAILABLE', $exception->details()];
         }
 
         if ($exception instanceof IdempotencyKeyRequiredException) {

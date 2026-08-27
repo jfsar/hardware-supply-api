@@ -22,6 +22,7 @@ use App\Models\Location;
 use App\Models\Order;
 use App\Models\OrderAddress;
 use App\Models\Payment;
+use App\Models\ShippingMethod;
 use App\Models\User;
 use App\Services\Inventory\ReserveStock;
 use App\Services\Pricing\CartTotalsCalculator;
@@ -47,7 +48,9 @@ class PlaceOrder
 
     /**
      * @param  string  $checkoutToken  signed token issued by ValidateCheckout
-     * @param  array<string, mixed>  $address  validated shipping address input
+     * @param  array<string, mixed>|null  $address  validated shipping address input (null for pickup)
+     * @param  string|null  $shippingMethodCode  active shipping method code (Phase 6 Task 3)
+     * @param  int|null  $pickupLocationId  active pickup location, required for pickup methods
      * @param  callable(int, string): void|null  $recordResponse  idempotency persistence hook (step 19)
      * @return array{order: Order, payment: Payment}
      *
@@ -60,8 +63,10 @@ class PlaceOrder
         string $paymentMethodValue,
         string $contactEmail,
         ?string $contactPhone,
-        array $address,
+        ?array $address,
         string $checkoutToken,
+        ?string $shippingMethodCode = null,
+        ?int $pickupLocationId = null,
         ?callable $recordResponse = null,
     ): array {
         if (! $cart->items()->exists()) {
@@ -72,11 +77,16 @@ class PlaceOrder
         $method->assertAvailable();
 
         /** @var array<string, mixed> $totals */
-        $totals = ($this->calculator)->calculate($cart, $user, false);
+        $totals = ($this->calculator)->calculate(
+            $cart,
+            $user,
+            false,
+            shippingContext: $this->shippingContext($shippingMethodCode, $pickupLocationId, $address),
+        );
         $this->assertTokenMatches($cart, $checkoutToken, $totals);
 
         /** @var array{order: Order, payment: Payment} $result */
-        $result = DB::transaction(function () use ($cart, $user, $method, $contactEmail, $contactPhone, $totals, $address, $recordResponse) {
+        $result = DB::transaction(function () use ($cart, $user, $method, $contactEmail, $contactPhone, $totals, $address, $shippingMethodCode, $pickupLocationId, $recordResponse) {
             // 13–15: lock inventory rows and hold stock.
             $reservationIds = ($this->reserveStock)(
                 null,
@@ -96,7 +106,10 @@ class PlaceOrder
 
             $order = $this->createOrder($user, $session, $method, $contactEmail, $contactPhone, $totals);
             $this->snapshotItems($order, $totals['lines'], $method);
-            $this->snapshotAddress($order, $address);
+
+            if ($address !== null) {
+                $this->snapshotAddress($order, $address);
+            }
 
             foreach ($reservationIds as $reservationId) {
                 DB::table('inventory_reservations')
@@ -122,6 +135,10 @@ class PlaceOrder
                 'status' => CheckoutSessionStatus::Completed->value,
                 'completed_at' => now(),
                 'address_snapshot' => $address,
+                'shipping_method_id' => $this->methodId($shippingMethodCode),
+                'pickup_location_id' => $pickupLocationId,
+                'shipping_estimated_min_days' => $totals['shipping_estimated_min_days'] ?? null,
+                'shipping_estimated_max_days' => $totals['shipping_estimated_max_days'] ?? null,
             ])->save();
 
             // 19: persist the response inside this transaction so replays
@@ -295,6 +312,44 @@ class PlaceOrder
             'currency_code' => $order->currency_code,
             'redeemed_at' => now(),
         ]);
+    }
+
+    /**
+     * Build the calculator's shipping context from the chosen method and
+     * destination. Null when no method was supplied (legacy flows); the
+     * calculator then returns a zero-cost default.
+     *
+     * @param  array<string, mixed>|null  $address
+     * @return array{destination_country_id: int, destination_region_id: int, destination_province_id: int|null, destination_city_id: int, destination_barangay_id: int, method_code: string, pickup_location_id: int|null}|null
+     */
+    protected function shippingContext(?string $methodCode, ?int $pickupLocationId, ?array $address): ?array
+    {
+        if ($methodCode === null) {
+            return null;
+        }
+
+        return [
+            'destination_country_id' => (int) ($address['country_id'] ?? 0),
+            'destination_region_id' => (int) ($address['region_id'] ?? 0),
+            'destination_province_id' => isset($address['province_id']) ? (int) $address['province_id'] : null,
+            'destination_city_id' => (int) ($address['city_id'] ?? 0),
+            'destination_barangay_id' => (int) ($address['barangay_id'] ?? 0),
+            'method_code' => $methodCode,
+            'pickup_location_id' => $pickupLocationId,
+        ];
+    }
+
+    /**
+     * Resolve the primary key for an active method code, or null when
+     * absent/unknown so the session row stays referentially clean.
+     */
+    protected function methodId(?string $methodCode): ?int
+    {
+        if ($methodCode === null) {
+            return null;
+        }
+
+        return ShippingMethod::query()->where('code', $methodCode)->value('id');
     }
 
     /**
