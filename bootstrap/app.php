@@ -5,6 +5,7 @@ use App\Http\Middleware\AppendRequestId;
 use App\Http\Middleware\EnsureIdempotency;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\ResolveCartToken;
+use App\Http\Middleware\ResolveOptionalAuthenticatedUser;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             AppendRequestId::class,
             ResolveCartToken::class,
+            ResolveOptionalAuthenticatedUser::class,
         ]);
 
         $middleware->alias([

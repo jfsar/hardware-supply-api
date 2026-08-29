@@ -10,6 +10,7 @@ use App\Models\CartItem;
 use App\Models\CheckoutSession;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Review;
 use App\Models\User;
 use App\Observers\InventoryObserver;
 use App\Services\Payments\FakePaymentGateway;
@@ -81,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureProductBinding();
         $this->configureVariantBinding();
         $this->configureCheckoutSessionBinding();
+        $this->configureReviewBinding();
         $this->configureInventoryObserver();
         $this->configureScrambleDocumentation();
     }
@@ -121,6 +123,17 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * Customer reviews resolve by ULID including soft-deleted ones, so the
+     * owner-scoped PATCH/DELETE helpers can restore-or-404 consistently.
+     */
+    private function configureReviewBinding(): void
+    {
+        Route::bind('review', fn (string $value): Review => Review::withTrashed()
+            ->where('ulid', $value)
+            ->firstOrFail());
+    }
+
+    /**
      * Every new variant gets a zero-quantity stock row at the primary warehouse.
      */
     private function configureInventoryObserver(): void
@@ -150,12 +163,19 @@ class AppServiceProvider extends ServiceProvider
                 str_starts_with($uri, 'api/v1/auth') => ['Auth'],
                 str_starts_with($uri, 'api/v1/account') => ['Account'],
                 str_starts_with($uri, 'api/v1/address') => ['Account · Address'],
+                str_starts_with($uri, 'api/v1/notification-preferences') => ['Account · Notifications'],
                 str_starts_with($uri, 'api/v1/checkout') => ['Checkout'],
                 str_starts_with($uri, 'api/v1/orders') => ['Orders'],
                 str_starts_with($uri, 'api/v1/payments') => ['Payments'],
                 str_starts_with($uri, 'api/v1/webhooks') => ['Webhooks'],
                 str_starts_with($uri, 'api/v1/cart') => ['Cart'],
                 str_starts_with($uri, 'api/v1/search') => ['Catalog · Search'],
+                str_starts_with($uri, 'api/v1/products/recently-viewed') => ['Engagement · Recently Viewed'],
+                str_starts_with($uri, 'api/v1/wishlist') => ['Engagement · Wishlist'],
+                str_starts_with($uri, 'api/v1/comparison') => ['Engagement · Comparison'],
+                str_contains($uri, 'stock-alerts') || str_contains($uri, 'price-alerts') => ['Engagement · Alerts'],
+                str_contains($uri, 'recommendations') => ['Engagement · Recommendations'],
+                str_contains($uri, 'reviews') => ['Engagement · Reviews'],
                 default => ['Catalog'],
             };
         });
@@ -192,6 +212,14 @@ class AppServiceProvider extends ServiceProvider
             ->by(optional($request->user())->id ?? $request->attributes->get('cart_token', $request->ip())));
 
         RateLimiter::for('orders', fn (Request $request) => Limit::perMinute(30)->by($request->user()?->id ?? $request->ip()));
+
+        // Customer engagement (Phase 7): per-user (or session) ceilings so
+        // interactions like review posts and alert subscriptions stay sane.
+        RateLimiter::for('reviews', fn (Request $request) => Limit::perHour(5)
+            ->by($request->user()?->id ?? $request->ip()));
+
+        RateLimiter::for('engagement', fn (Request $request) => Limit::perMinute(120)
+            ->by($request->user()?->id ?? $request->attributes->get('cart_token_hash', $request->ip())));
 
         // Inbound provider webhooks: keyed by IP, generous ceiling — the
         // signature check is the real gate (SRS §20).

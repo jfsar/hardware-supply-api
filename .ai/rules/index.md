@@ -25,6 +25,6 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Actions/Checkout/**,app/Services/Pricing/** | .ai/rules/pricing.md |
 | app/Providers/** | .ai/rules/providers.md |
 | app/Http/Requests/** | .ai/rules/requests.md |
-| routes/api.php | .ai/rules/routes.md |
+| routes/api.php, routes/** | .ai/rules/routes.md |
 | app/Services/** | .ai/rules/services.md |
 | tests/** | .ai/rules/tests.md |

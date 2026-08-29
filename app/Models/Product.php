@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ProductStatus;
 use App\Enums\RelationType;
+use App\Enums\ReviewStatus;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -153,5 +154,14 @@ class Product extends Model
     public function attributeValues(): HasMany
     {
         return $this->hasMany(ProductAttributeValue::class);
+    }
+
+    /**
+     * Approved reviews shown through the public catalog (FR-REV-004).
+     */
+    public function publishedReviews(): HasMany
+    {
+        return $this->hasMany(Review::class)
+            ->where('status', ReviewStatus::Published->value);
     }
 }

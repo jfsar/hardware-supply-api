@@ -3,12 +3,16 @@
 use App\OpenApi\Extensions\AuthenticationEnvelopeExtension;
 use App\OpenApi\Extensions\AuthorizationEnvelopeExtension;
 use App\OpenApi\Extensions\CategoryInUseEnvelopeExtension;
+use App\OpenApi\Extensions\ComparisonLimitEnvelopeExtension;
 use App\OpenApi\Extensions\HttpEnvelopeExtension;
 use App\OpenApi\Extensions\InsufficientStockEnvelopeExtension;
 use App\OpenApi\Extensions\NegativeStockEnvelopeExtension;
 use App\OpenApi\Extensions\NotFoundEnvelopeExtension;
 use App\OpenApi\Extensions\PermissionDeniedResponsesExtension;
 use App\OpenApi\Extensions\ProductNotPublishableEnvelopeExtension;
+use App\OpenApi\Extensions\ReviewAlreadyExistsEnvelopeExtension;
+use App\OpenApi\Extensions\ReviewNotVerifiedPurchaserEnvelopeExtension;
+use App\OpenApi\Extensions\ReviewReportAlreadyExistsEnvelopeExtension;
 use App\OpenApi\Extensions\SuspendedAccountEnvelopeExtension;
 use App\OpenApi\Extensions\ThrottledResponsesExtension;
 use App\OpenApi\Extensions\TwoFactorRequiredEnvelopeExtension;
@@ -205,6 +209,10 @@ MD,
         OrderStateInvalidEnvelopeExtension::class,
         IdempotencyKeyRequiredEnvelopeExtension::class,
         IdempotencyConflictEnvelopeExtension::class,
+        ReviewNotVerifiedPurchaserEnvelopeExtension::class,
+        ReviewAlreadyExistsEnvelopeExtension::class,
+        ReviewReportAlreadyExistsEnvelopeExtension::class,
+        ComparisonLimitEnvelopeExtension::class,
         ThrottledResponsesExtension::class,
         PermissionDeniedResponsesExtension::class,
     ],

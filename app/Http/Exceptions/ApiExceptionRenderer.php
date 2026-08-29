@@ -10,6 +10,7 @@ use App\Exceptions\Catalog\ProductNotPublishableException;
 use App\Exceptions\Checkout\CartEmptyException;
 use App\Exceptions\Checkout\CheckoutTotalsChangedException;
 use App\Exceptions\Checkout\PaymentMethodUnavailableException;
+use App\Exceptions\Engagement\ComparisonLimitReachedException;
 use App\Exceptions\Http\IdempotencyConflictException;
 use App\Exceptions\Http\IdempotencyKeyRequiredException;
 use App\Exceptions\Inventory\InsufficientStockException;
@@ -23,6 +24,9 @@ use App\Exceptions\Payments\RefundExceedsBalanceException;
 use App\Exceptions\Payments\WebhookSignatureException;
 use App\Exceptions\Pricing\CouponException;
 use App\Exceptions\Pricing\PriceUnavailableException;
+use App\Exceptions\Reviews\ReviewAlreadyExistsException;
+use App\Exceptions\Reviews\ReviewNotVerifiedPurchaserException;
+use App\Exceptions\Reviews\ReviewReportAlreadyExistsException;
 use App\Exceptions\Shipping\ShippingRateNotFoundException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -152,6 +156,22 @@ class ApiExceptionRenderer
 
         if ($exception instanceof IdempotencyConflictException) {
             return [409, 'IDEMPOTENCY_CONFLICT', []];
+        }
+
+        if ($exception instanceof ReviewNotVerifiedPurchaserException) {
+            return [403, 'REVIEW_NOT_VERIFIED_PURCHASER', []];
+        }
+
+        if ($exception instanceof ReviewAlreadyExistsException) {
+            return [409, 'REVIEW_ALREADY_EXISTS', []];
+        }
+
+        if ($exception instanceof ReviewReportAlreadyExistsException) {
+            return [409, 'REVIEW_REPORT_ALREADY_EXISTS', []];
+        }
+
+        if ($exception instanceof ComparisonLimitReachedException) {
+            return [409, 'COMPARISON_LIMIT_REACHED', []];
         }
 
         // A lost race on the idempotency unique index means a duplicate

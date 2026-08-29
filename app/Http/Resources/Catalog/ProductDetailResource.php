@@ -57,6 +57,11 @@ class ProductDetailResource extends JsonResource
                     ->all(),
             ),
             'bundle' => $this->bundleContents(),
+            'reviews' => $this->when($this->relationLoaded('publishedReviews'), fn (): array => [
+                'count' => $this->publishedReviews->count(),
+                'average_rating' => round((float) $this->publishedReviews->avg('rating') ?: 0.0, 2),
+                'helpful' => $this->publishedReviews->sum('helpful_votes_count'),
+            ]),
             'published_at' => $this->published_at?->toISOString(),
         ];
     }

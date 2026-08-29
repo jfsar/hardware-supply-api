@@ -122,9 +122,9 @@ used by every queued notification from this phase onward (retrofit Phase 4/6 sen
 
 ## Acceptance Checklist
 
-- [ ] Only verified purchasers can review; one active review per product per customer
-- [ ] Moderation states respected publicly (only Published visible)
-- [ ] Helpful/report tables enforce composite uniqueness
-- [ ] Wishlist/recently-viewed/comparison work for guests where designed
-- [ ] Restock and price-drop emails fire exactly once per subscription event and respect preferences
-- [ ] Recommendations deterministic and covered by tests
+- [x] Only verified purchasers can review; one active review per product per customer
+- [x] Moderation states respected publicly (only Published visible)
+- [x] Helpful/report tables enforce composite uniqueness
+- [x] Wishlist/recently-viewed/comparison work for guests where designed
+- [x] Restock and price-drop emails fire exactly once per subscription event and respect preferences
+- [x] Recommendations deterministic and covered by tests

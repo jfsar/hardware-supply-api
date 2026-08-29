@@ -3,6 +3,7 @@
 namespace App\Actions\Inventory;
 
 use App\Enums\MovementType;
+use App\Events\InventoryBecameAvailable;
 use App\Exceptions\Inventory\NegativeStockException;
 use App\Models\Inventory;
 use App\Models\Location;
@@ -71,6 +72,9 @@ class AdjustInventory
             return [$inventory, $before, $after];
         });
 
+        $beforeAvailable = $before - (float) $inventory->quantity_reserved;
+        $afterAvailable = $after - (float) $inventory->quantity_reserved;
+
         ($this->recordAuditLog)($actor, 'inventory.adjusted', 'Inventory', (int) $inventory->getKey(), [
             'sku' => $variant->sku,
             'quantity_on_hand' => $before,
@@ -81,6 +85,10 @@ class AdjustInventory
             'quantity_on_hand' => $after,
             'reason' => $reason,
         ]);
+
+        if ($beforeAvailable <= 0.0 && $afterAvailable > 0.0) {
+            event(new InventoryBecameAvailable($variant));
+        }
 
         return $inventory->refresh();
     }

@@ -5,7 +5,7 @@ migrations, models, enums, actions, services, form requests, resources, controll
 required to complete the phase, with key code snippets and an acceptance checklist mapped back to SRS
 requirement IDs.
 
-## Status Snapshot (2026-08-22)
+## Status Snapshot (2026-08-29)
 
 | Phase | Guide | State |
 |---|---|---|
@@ -15,7 +15,7 @@ requirement IDs.
 | 4 — Commerce | [phase-04-commerce.md](phase-04-commerce.md) | ✅ Complete (2026-08-26): `Money`/`OrderNumber`/`CheckoutToken` support, guest+authenticated carts with token middleware and login merge, deterministic `PriceResolver`, promotions engine (`PromotionEligibilityChecker`/`DiscountApplier` with largest-remainder allocation) + typed `CouponValidator`, `PhVatTaxCalculator` (exclusive+inclusive), flat shipping placeholder behind contract, `EnsureIdempotency` middleware with in-transaction response persistence, single-pipeline checkout (`ValidateCheckout` + signed `checkout_token` → `PlaceOrder` reserve→order→payment→redemption in ONE transaction), `OrderStatus` transitions map with full/partial cancellation via `ReleaseStock`, `OrderCreated` queued confirmation gated by `notification_preferences` (opt-in default), OpenAPI extensions for 10 new stable error codes, suite green (198 tests / 754 assertions) |
 | 5 — Payments | [phase-05-payments.md](phase-05-payments.md) | Not started |
 | 6 — Fulfillment | [phase-06-fulfillment.md](phase-06-fulfillment.md) | Not started |
-| 7 — Customer Experience | [phase-07-customer-experience.md](phase-07-customer-experience.md) | Not started |
+| 7 — Customer Experience | [phase-07-customer-experience.md](phase-07-customer-experience.md) | ✅ Complete (2026-08-29): verified-purchase review system (moderated states, helpful/report composites), wishlist, recently viewed (multi-identity dedupe + scheduled prune), product comparison (limits + matrix resource), back-in-stock/price-drop pipelines (reactivating subscriptions, locked notify-once jobs, `NotificationPreferenceGate` opt-out), rule-based `ProductRecommender` (co-occurrence, category affinity, popularity, impression/click events), notification-preferences API, optional-auth middleware for guest-or-auth endpoints, OpenAPI extended (4 new error codes), suite green (314 tests) |
 | 8 — Administration | [phase-08-administration.md](phase-08-administration.md) | Not started |
 | 9 — Production Hardening | [phase-09-production-hardening.md](phase-09-production-hardening.md) | Not started |
 

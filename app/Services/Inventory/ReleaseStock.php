@@ -4,8 +4,10 @@ namespace App\Services\Inventory;
 
 use App\Enums\MovementType;
 use App\Enums\ReservationStatus;
+use App\Events\InventoryBecameAvailable;
 use App\Models\Inventory;
 use App\Models\InventoryReservation;
+use App\Models\ProductVariant;
 use App\Services\Inventory\Concerns\RecordsMovements;
 use Illuminate\Support\Facades\DB;
 
@@ -52,6 +54,14 @@ class ReleaseStock
                 null,
                 $reservation,
             );
+
+            if ($before <= 0.0 && $inventory->availableQuantity() > 0.0) {
+                $variant = ProductVariant::withTrashed()->find($reservation->product_variant_id);
+
+                if ($variant !== null) {
+                    event(new InventoryBecameAvailable($variant));
+                }
+            }
 
             return $reservation;
         });

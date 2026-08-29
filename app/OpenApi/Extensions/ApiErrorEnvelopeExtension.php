@@ -10,6 +10,7 @@ use App\Exceptions\Catalog\ProductNotPublishableException;
 use App\Exceptions\Checkout\CartEmptyException;
 use App\Exceptions\Checkout\CheckoutTotalsChangedException;
 use App\Exceptions\Checkout\PaymentMethodUnavailableException;
+use App\Exceptions\Engagement\ComparisonLimitReachedException;
 use App\Exceptions\Http\IdempotencyConflictException;
 use App\Exceptions\Http\IdempotencyKeyRequiredException;
 use App\Exceptions\Inventory\InsufficientStockException;
@@ -17,6 +18,9 @@ use App\Exceptions\Inventory\NegativeStockException;
 use App\Exceptions\Orders\OrderStateException;
 use App\Exceptions\Pricing\CouponException;
 use App\Exceptions\Pricing\PriceUnavailableException;
+use App\Exceptions\Reviews\ReviewAlreadyExistsException;
+use App\Exceptions\Reviews\ReviewNotVerifiedPurchaserException;
+use App\Exceptions\Reviews\ReviewReportAlreadyExistsException;
 use App\OpenApi\ErrorEnvelope;
 use Dedoc\Scramble\Extensions\ExceptionToResponseExtension;
 use Dedoc\Scramble\Support\Generator\Reference;
@@ -65,6 +69,10 @@ abstract class ApiErrorEnvelopeExtension extends ExceptionToResponseExtension
         OrderStateException::class,
         IdempotencyKeyRequiredException::class,
         IdempotencyConflictException::class,
+        ReviewNotVerifiedPurchaserException::class,
+        ReviewAlreadyExistsException::class,
+        ReviewReportAlreadyExistsException::class,
+        ComparisonLimitReachedException::class,
     ];
 
     abstract protected function status(): int;

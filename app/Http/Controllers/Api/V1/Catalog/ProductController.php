@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Api\V1\Catalog;
 
 use App\Contracts\ProductSearch;
 use App\Enums\RelationType;
+use App\Events\ProductViewed;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\ListProductsRequest;
 use App\Http\Resources\Catalog\ProductDetailResource;
 use App\Http\Resources\Catalog\ProductListResource;
+use App\Http\Resources\Reviews\ReviewResource;
 use App\Models\Product;
+use App\Models\Review;
 use App\Services\Search\ProductSearchQuery;
 use Dedoc\Scramble\Attributes\Response as ApiDocResponse;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ProductController extends Controller
@@ -74,7 +78,7 @@ class ProductController extends Controller
     /**
      * Public detail page payload for one active product.
      */
-    public function show(string $slug): JsonResponse
+    public function show(Request $request, string $slug): JsonResponse
     {
         $product = Product::query()
             ->publiclyVisible()
@@ -84,8 +88,15 @@ class ProductController extends Controller
                 'variants' => fn (Builder $query) => $query->with(['attributeValues.attribute', 'inventories']),
                 'images', 'documents', 'bundle.items.variant',
                 'attributeValues.attribute',
+                'publishedReviews' => fn (Builder $query) => $query->withCount('helpfulVotes'),
             ])
             ->firstOrFail();
+
+        event(new ProductViewed(
+            $product,
+            $request->user(),
+            $request->attributes->get('cart_token_hash'),
+        ));
 
         return response()->json([
             'data' => new ProductDetailResource($product),
@@ -144,25 +155,29 @@ class ProductController extends Controller
     }
 
     /**
-     * Published reviews; fully wired in Phase 7 (FR-REV-001).
+     * Approved reviews for a product, newest first (FR-REV-004).
      */
     #[ApiDocResponse(
         status: 200,
-        description: 'Placeholder payload until reviews ship.',
+        description: 'Published reviews with author summary and helpful counts.',
         examples: [
-            ['data' => [], 'meta' => ['message' => 'Reviews arrive in a later release.']],
+            ['data' => []],
         ],
     )]
-    public function reviews(string $slug): JsonResponse
+    public function reviews(string $slug): AnonymousResourceCollection
     {
-        abort_unless(
-            Product::query()->publiclyVisible()->where('slug', $slug)->exists(),
-            404,
-        );
+        $product = Product::query()
+            ->publiclyVisible()
+            ->where('slug', $slug)
+            ->firstOrFail();
 
-        return response()->json([
-            'data' => [],
-            'meta' => ['message' => __('Reviews arrive in a later release.')],
-        ]);
+        $reviews = Review::query()
+            ->publiclyVisible()
+            ->where('product_id', $product->id)
+            ->with(['author:id,first_name,last_name', 'helpfulVotes'])
+            ->orderByDesc('published_at')
+            ->paginate(20);
+
+        return ReviewResource::collection($reviews);
     }
 }

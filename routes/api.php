@@ -15,6 +15,13 @@ use App\Http\Controllers\Api\V1\Catalog\CategoryController as PublicCategoryCont
 use App\Http\Controllers\Api\V1\Catalog\ProductController as PublicProductController;
 use App\Http\Controllers\Api\V1\Catalog\SearchAutocompleteController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\Engagement\AlertController;
+use App\Http\Controllers\Api\V1\Engagement\ComparisonController;
+use App\Http\Controllers\Api\V1\Engagement\NotificationPreferenceController;
+use App\Http\Controllers\Api\V1\Engagement\RecentlyViewedController;
+use App\Http\Controllers\Api\V1\Engagement\RecommendationController;
+use App\Http\Controllers\Api\V1\Engagement\ReviewController;
+use App\Http\Controllers\Api\V1\Engagement\WishlistController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -138,6 +145,11 @@ Route::prefix('search')->middleware('throttle:search')->group(function (): void 
 Route::get('/categories', [PublicCategoryController::class, 'index'])->middleware('throttle:search');
 Route::get('/categories/{slug}', [PublicCategoryController::class, 'show'])->middleware('throttle:search');
 Route::get('/products', [PublicProductController::class, 'index'])->middleware('throttle:search');
+
+// Must be declared before the {slug} catch-alls below.
+Route::get('/products/recently-viewed', [RecentlyViewedController::class, 'index'])
+    ->middleware('throttle:engagement');
+
 Route::get('/products/{slug}', [PublicProductController::class, 'show'])->middleware('throttle:search');
 Route::get('/products/{slug}/related', [PublicProductController::class, 'related'])->middleware('throttle:search');
 Route::get('/products/{slug}/reviews', [PublicProductController::class, 'reviews'])->middleware('throttle:search');
@@ -176,6 +188,38 @@ Route::prefix('orders')
         Route::post('/{order}/payments', [PaymentController::class, 'store'])
             ->middleware('idempotency:orders.payments');
     });
+
+// Customer engagement (Phase 7): verified-purchase reviews.
+Route::middleware(['auth:sanctum', 'verified', 'throttle:engagement'])->group(function (): void {
+    Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])
+        ->middleware('throttle:reviews');
+    Route::patch('/reviews/{review}', [ReviewController::class, 'update']);
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);
+    Route::post('/reviews/{review}/helpful', [ReviewController::class, 'helpful']);
+    Route::post('/reviews/{review}/report', [ReviewController::class, 'report']);
+
+    Route::get('/wishlist', [WishlistController::class, 'index']);
+    Route::post('/wishlist/items', [WishlistController::class, 'store']);
+    Route::delete('/wishlist/items/{product_ulid}', [WishlistController::class, 'destroy']);
+
+    Route::get('/notification-preferences', [NotificationPreferenceController::class, 'show']);
+    Route::put('/notification-preferences', [NotificationPreferenceController::class, 'update']);
+});
+
+// Customer engagement (Phase 7): guest-or-auth comparison.
+Route::middleware('throttle:engagement')->group(function (): void {
+    Route::get('/comparison', [ComparisonController::class, 'index']);
+    Route::post('/comparison/items', [ComparisonController::class, 'store']);
+    Route::delete('/comparison/items/{product_ulid}', [ComparisonController::class, 'destroy']);
+
+    Route::post('/products/{variant}/stock-alerts', [AlertController::class, 'subscribeStock']);
+    Route::delete('/products/{variant}/stock-alerts', [AlertController::class, 'unsubscribeStock']);
+    Route::post('/products/{variant}/price-alerts', [AlertController::class, 'subscribePrice']);
+    Route::delete('/products/{variant}/price-alerts', [AlertController::class, 'unsubscribePrice']);
+
+    Route::get('/products/{slug}/recommendations', [RecommendationController::class, 'index']);
+    Route::post('/products/{slug}/recommendations/click', [RecommendationController::class, 'click']);
+});
 
 // Commerce (Phase 5): gateway payment lifecycle (owner-scoped, idempotent).
 Route::prefix('payments')

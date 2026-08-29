@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\PruneRecentlyViewedProducts;
 use App\Jobs\ReleaseExpiredReservations;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -27,3 +28,10 @@ Schedule::command('payments:reconcile')
     ->name('payments:reconcile')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Recently-viewed retention sweep (Phase 7 Task 3): drop history older than
+// the engagement window each morning on the notifications workers.
+Schedule::job(new PruneRecentlyViewedProducts, 'notifications')
+    ->dailyAt('03:00')
+    ->name('engagement:prune-recently-viewed')
+    ->withoutOverlapping();
