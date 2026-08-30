@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Auth\RequestAccountDeletion;
+use App\Actions\Privacy\CancelAccountDeletion;
 use App\Http\Controllers\Controller;
 use App\Jobs\GenerateAccountExport;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -54,6 +56,22 @@ class AccountController extends Controller
         return response()->json([
             'data' => [
                 'message' => __('Your deletion request has been received and your access has been revoked.'),
+            ],
+        ]);
+    }
+
+    /**
+     * Cancel a deletion request inside the grace window (FR-CUST-006).
+     * This is a signed link, reached without a bearer token because the
+     * request flow already revoked access; the signature proves ownership.
+     */
+    public function cancelDeletion(User $user, CancelAccountDeletion $cancelDeletion): JsonResponse
+    {
+        $cancelDeletion($user);
+
+        return response()->json([
+            'data' => [
+                'message' => __('Your deletion request has been cancelled and your account is active again.'),
             ],
         ]);
     }

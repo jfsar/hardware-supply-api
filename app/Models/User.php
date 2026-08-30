@@ -36,6 +36,11 @@ class User extends Authenticatable implements MustVerifyEmail
         });
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'ulid';
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -90,5 +95,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function address(): HasOne
     {
         return $this->hasOne(CustomerAddress::class);
+    }
+
+    /**
+     * Orders placed by this customer (including guest checkout where the
+     * account was later linked).
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
     }
 }

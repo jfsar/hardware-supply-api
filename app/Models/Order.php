@@ -127,4 +127,45 @@ class Order extends Model
     {
         return $this->hasMany(Shipment::class)->latest();
     }
+
+    /**
+     * Staff notes attached to the order (Phase 8).
+     */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(OrderNote::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * Only the notes explicitly flagged for customer visibility (Phase 8,
+     * SRS §69) — surfaced through the customer-facing OrderResource.
+     */
+    public function visibleNotes(): HasMany
+    {
+        return $this->notes()->where('is_customer_visible', true);
+    }
+
+    /**
+     * Append-only manual price adjustments (Phase 8, SRS §69).
+     */
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(OrderAdjustment::class)->orderByDesc('created_at');
+    }
+
+    /**
+     * Issued invoices (Phase 8, FR-ORD-008).
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    /**
+     * Credit notes raised against this order's invoice(s).
+     */
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(CreditNote::class);
+    }
 }

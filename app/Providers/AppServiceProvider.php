@@ -157,6 +157,13 @@ class AppServiceProvider extends ServiceProvider
             $uri = $routeInfo->route->uri();
 
             return match (true) {
+                str_starts_with($uri, 'api/v1/admin/customers') => ['Admin · Customers'],
+                str_starts_with($uri, 'api/v1/admin/orders') => ['Admin · Orders'],
+                str_starts_with($uri, 'api/v1/admin/payments') => ['Admin · Payments'],
+                str_starts_with($uri, 'api/v1/admin/reviews') => ['Admin · Reviews'],
+                str_starts_with($uri, 'api/v1/admin/reports') => ['Admin · Reports'],
+                str_starts_with($uri, 'api/v1/admin/webhooks') => ['Admin · Webhooks'],
+                str_starts_with($uri, 'api/v1/admin/shipments') => ['Admin · Fulfillment'],
                 str_starts_with($uri, 'api/v1/admin') => ['Admin · Catalog'],
                 str_starts_with($uri, 'api/v1/auth/2fa') => ['Auth · Two-Factor'],
                 str_starts_with($uri, 'api/v1/auth/sessions') => ['Auth · Sessions'],

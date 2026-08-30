@@ -14,12 +14,10 @@ class RequestAccountDeletion
     ) {}
 
     /**
-     * Mark the account as deletion-requested: suspend access, revoke all
-     * tokens and device sessions, and record the security event.
-     *
-     * Full anonymization of retained financial history is handled by the
-     * Phase 8 privacy workflow; this step is safe to reverse while the
-     * grace window has not been implemented.
+     * Detach from the account as soon as a deletion is requested and
+     * stamp when it happened so the privacy sweep can anonymize retained
+     * financial history after the grace window (NFR-PRIV-001). Safe to
+     * reverse while the window is open.
      *
      * @return bool false when the account is protected from self-deletion.
      */
@@ -29,7 +27,10 @@ class RequestAccountDeletion
             return false;
         }
 
-        $user->forceFill(['status' => UserStatus::Deleted->value])->save();
+        $user->forceFill([
+            'status' => UserStatus::Deleted->value,
+            'deletion_requested_at' => now(),
+        ])->save();
 
         $user->tokens()->delete();
 

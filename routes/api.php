@@ -4,11 +4,16 @@ use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\Admin\BrandController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
+use App\Http\Controllers\Api\V1\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Api\V1\Admin\FulfillmentController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
+use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductMediaController;
 use App\Http\Controllers\Api\V1\Admin\RefundController;
+use App\Http\Controllers\Api\V1\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Api\V1\Admin\ReviewController as AdminReviewController;
+use App\Http\Controllers\Api\V1\Admin\WebhookController as AdminWebhookController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\Catalog\CategoryController as PublicCategoryController;
@@ -74,6 +79,12 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:account'])->group(funct
     Route::post('/account/delete-request', [AccountController::class, 'requestDeletion'])->name('account.delete.request');
 });
 
+// Cancel a deletion request inside its grace window — a signed link, no
+// bearer token needed (FR-CUST-006, NFR-PRIV-001).
+Route::get('/account/delete-request/{user}/cancel', [AccountController::class, 'cancelDeletion'])
+    ->middleware('signed')
+    ->name('account.delete.cancel');
+
 // Inbound provider webhooks (Phase 5): unauthenticated, signature-verified,
 // provider-aware rate limit. Raw body is consumed by the controller.
 Route::post('/webhooks/payrex', WebhookController::class)
@@ -129,13 +140,82 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'throttle:admin'])->group(fu
         ->middleware('permission:orders.refund');
 
     // Fulfillment (Phase 6 Task 4).
-    Route::get('/orders/{order}', [FulfillmentController::class, 'show'])
+    Route::get('/orders/{order}', [AdminOrderController::class, 'show'])
         ->middleware('permission:orders.view');
     Route::post('/orders/{order}/fulfill', [FulfillmentController::class, 'fulfill'])
         ->middleware('permission:orders.fulfill');
     Route::patch('/shipments/{shipment}/tracking', [FulfillmentController::class, 'tracking'])
         ->middleware('permission:orders.fulfill');
+
+    // Customer administration (Phase 8 Task 1, FR-ADMIN-002/003).
+    Route::get('/customers', [AdminCustomerController::class, 'index'])
+        ->middleware('permission:customers.view');
+    Route::get('/customers/{customer}', [AdminCustomerController::class, 'show'])
+        ->middleware('permission:customers.view');
+    Route::patch('/customers/{customer}', [AdminCustomerController::class, 'update'])
+        ->middleware('permission:customers.update');
+    Route::post('/customers/{customer}/suspend', [AdminCustomerController::class, 'suspend'])
+        ->middleware('permission:customers.suspend');
+    Route::post('/customers/{customer}/restore', [AdminCustomerController::class, 'restore'])
+        ->middleware('permission:customers.suspend');
+
+    // Order administration (Phase 8 Task 2, FR-ADMIN-004, SRS §69).
+    Route::get('/orders', [AdminOrderController::class, 'index'])
+        ->middleware('permission:orders.view');
+    Route::patch('/orders/{order}', [AdminOrderController::class, 'update'])
+        ->middleware('permission:orders.update');
+    Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel'])
+        ->middleware('permission:orders.cancel');
+    Route::post('/orders/{order}/refund', [AdminOrderController::class, 'refund'])
+        ->middleware('permission:orders.refund');
+    Route::get('/orders/{order}/notes', [AdminOrderController::class, 'notesIndex'])
+        ->middleware('permission:orders.notes');
+    Route::post('/orders/{order}/notes', [AdminOrderController::class, 'notesStore'])
+        ->middleware('permission:orders.notes');
+
+    // Review moderation (Phase 8 Task 3, FR-ADMIN-005).
+    Route::get('/reviews', [AdminReviewController::class, 'index'])
+        ->middleware('permission:products.view');
+    Route::get('/reviews/reports', [AdminReviewController::class, 'reports'])
+        ->middleware('permission:products.view');
+    Route::post('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])
+        ->middleware('permission:products.update');
+    Route::post('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])
+        ->middleware('permission:products.update');
+    Route::post('/reviews/{review}/hide', [AdminReviewController::class, 'hide'])
+        ->middleware('permission:products.update');
+
+    // Reports (Phase 8 Task 4, FR-RPT-001…005). Export routes must stay
+    // before /reports/{reportType} so "exports" is not swallowed.
+    Route::get('/reports/exports', [AdminReportController::class, 'index'])
+        ->middleware('permission:reports.export');
+    Route::post('/reports/exports', [AdminReportController::class, 'export'])
+        ->middleware('permission:reports.export');
+    Route::get('/reports/exports/{export}', [AdminReportController::class, 'show'])
+        ->middleware('permission:reports.export');
+    Route::get('/reports/{reportType}', [AdminReportController::class, 'query'])
+        ->middleware('permission:reports.view');
+
+    // Outbound webhooks (Phase 8 Task 6, FR-NOTIF-003/004).
+    Route::get('/webhooks', [AdminWebhookController::class, 'index'])
+        ->middleware('permission:webhooks.manage');
+    Route::post('/webhooks', [AdminWebhookController::class, 'store'])
+        ->middleware('permission:webhooks.manage');
+    Route::get('/webhooks/{endpoint}', [AdminWebhookController::class, 'show'])
+        ->middleware('permission:webhooks.manage');
+    Route::patch('/webhooks/{endpoint}', [AdminWebhookController::class, 'update'])
+        ->middleware('permission:webhooks.manage');
+    Route::delete('/webhooks/{endpoint}', [AdminWebhookController::class, 'destroy'])
+        ->middleware('permission:webhooks.manage');
+    Route::get('/webhooks/{endpoint}/deliveries', [AdminWebhookController::class, 'deliveries'])
+        ->middleware('permission:webhooks.manage');
 });
+
+// Signed report export download (Phase 8, FR-RPT-003) — no bearer token;
+// the short-lived signature is the credential.
+Route::get('/admin/reports/exports/{export}/download', [AdminReportController::class, 'download'])
+    ->middleware('signed')
+    ->name('admin.reports.exports.download');
 
 // Public catalog browsing (Phase 2).
 Route::prefix('search')->middleware('throttle:search')->group(function (): void {

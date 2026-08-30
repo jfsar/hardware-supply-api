@@ -54,6 +54,12 @@ class OrderResource extends JsonResource
                     'changed_by_user_id' => $history->changed_by_user_id,
                     'created_at' => optional($history->created_at)->toISOString(),
                 ])->all()),
+            'visible_notes' => $this->whenLoaded('visibleNotes', fn (): array => $this->resource->visibleNotes
+                ->map(fn ($note): array => [
+                    'id' => $note->getKey(),
+                    'note' => $note->note,
+                    'created_at' => optional($note->created_at)->toISOString(),
+                ])->all()),
             'shipments' => ShipmentResource::collection($this->whenLoaded('shipments')),
         ];
     }

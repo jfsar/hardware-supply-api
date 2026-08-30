@@ -13,6 +13,7 @@ use App\OpenApi\Extensions\ProductNotPublishableEnvelopeExtension;
 use App\OpenApi\Extensions\ReviewAlreadyExistsEnvelopeExtension;
 use App\OpenApi\Extensions\ReviewNotVerifiedPurchaserEnvelopeExtension;
 use App\OpenApi\Extensions\ReviewReportAlreadyExistsEnvelopeExtension;
+use App\OpenApi\Extensions\ReviewStateEnvelopeExtension;
 use App\OpenApi\Extensions\SuspendedAccountEnvelopeExtension;
 use App\OpenApi\Extensions\ThrottledResponsesExtension;
 use App\OpenApi\Extensions\TwoFactorRequiredEnvelopeExtension;
@@ -212,6 +213,7 @@ MD,
         ReviewNotVerifiedPurchaserEnvelopeExtension::class,
         ReviewAlreadyExistsEnvelopeExtension::class,
         ReviewReportAlreadyExistsEnvelopeExtension::class,
+        ReviewStateEnvelopeExtension::class,
         ComparisonLimitEnvelopeExtension::class,
         ThrottledResponsesExtension::class,
         PermissionDeniedResponsesExtension::class,

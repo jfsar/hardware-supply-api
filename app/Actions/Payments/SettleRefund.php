@@ -5,6 +5,7 @@ namespace App\Actions\Payments;
 use App\Enums\PaymentStatus;
 use App\Enums\RefundStatus;
 use App\Enums\TransactionType;
+use App\Events\RefundSucceeded;
 use App\Exceptions\Payments\PaymentStateException;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -16,7 +17,9 @@ use Illuminate\Support\Facades\DB;
  * Succeeded, advances order_items.quantity_refunded, and recomputes the
  * payment's refunded aggregate. Both ProcessRefund and the webhook
  * consumer funnel through here, so concurrent confirmations cannot
- * double-apply quantities or aggregate state.
+ * double-apply quantities or aggregate state. The RefundSucceeded event
+ * (credit note + outbound webhook) fires only on the invocation that
+ * actually performs the settlement.
  */
 class SettleRefund
 {
@@ -25,7 +28,9 @@ class SettleRefund
      */
     public function __invoke(Refund $refund): Refund
     {
-        return DB::transaction(function () use ($refund): Refund {
+        $settled = false;
+
+        $result = DB::transaction(function () use ($refund, &$settled): Refund {
             /** @var Refund $locked */
             $locked = Refund::query()->whereKey($refund->getKey())->lockForUpdate()->firstOrFail();
 
@@ -52,8 +57,16 @@ class SettleRefund
             $payment = $locked->payment()->lockForUpdate()->firstOrFail();
             $this->refreshAggregate($payment);
 
+            $settled = true;
+
             return $locked;
         });
+
+        if ($settled) {
+            event(new RefundSucceeded($result));
+        }
+
+        return $result;
     }
 
     /**

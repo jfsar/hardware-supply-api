@@ -27,6 +27,7 @@ use App\Exceptions\Pricing\PriceUnavailableException;
 use App\Exceptions\Reviews\ReviewAlreadyExistsException;
 use App\Exceptions\Reviews\ReviewNotVerifiedPurchaserException;
 use App\Exceptions\Reviews\ReviewReportAlreadyExistsException;
+use App\Exceptions\Reviews\ReviewStateException;
 use App\Exceptions\Shipping\ShippingRateNotFoundException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -168,6 +169,10 @@ class ApiExceptionRenderer
 
         if ($exception instanceof ReviewReportAlreadyExistsException) {
             return [409, 'REVIEW_REPORT_ALREADY_EXISTS', []];
+        }
+
+        if ($exception instanceof ReviewStateException) {
+            return [409, 'REVIEW_STATE_INVALID', $exception->details()];
         }
 
         if ($exception instanceof ComparisonLimitReachedException) {

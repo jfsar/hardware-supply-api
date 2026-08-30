@@ -9,6 +9,8 @@ use App\Jobs\ProcessRefund;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Refund;
+use App\Models\User;
+use App\Services\RecordAuditLog;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -19,10 +21,12 @@ use Illuminate\Support\Facades\DB;
  *
  * Partial amounts allocate across the selected order lines by largest-
  * remainder apportionment of remaining line totals, so refund_items sums
- * exactly to amount_minor.
+ * exactly to amount_minor. Admin-initiated refunds are audit-logged.
  */
 class CreateRefund
 {
+    public function __construct(protected RecordAuditLog $recordAuditLog) {}
+
     /**
      * @param  list<array{item: int, quantity: float|int}>  $items  Optional line allocation [{item: order_item id, quantity}]
      *
@@ -35,6 +39,7 @@ class CreateRefund
         string $reason,
         ?string $remarks,
         array $items = [],
+        ?User $actor = null,
     ): Refund {
         /** @var list<array{order_item_id: int, quantity: float, amount_minor: int}> $allocations */
         [$allocations, $amountMinor] = DB::transaction(function () use ($payment, $amountMinor, $items): array {
@@ -89,6 +94,16 @@ class CreateRefund
         DB::afterCommit(fn () => ProcessRefund::dispatch($refund->getKey())->onQueue(
             (string) config('payments.queue', 'payments'),
         ));
+
+        // Staff-audit the refund creation (FR-ADMIN-006); null actors
+        // (internal flows) are tolerated but produce a null actor_user_id.
+        ($this->recordAuditLog)($actor, 'refund.created', 'Refund', (int) $refund->getKey(), null, [
+            'order_number' => $payment->order?->order_number,
+            'amount_minor' => $amountMinor,
+            'currency_code' => $refund->currency_code,
+            'status' => $refund->status->value,
+            'reason' => mb_substr((string) $refund->reason, 0, 500),
+        ]);
 
         return $refund;
     }

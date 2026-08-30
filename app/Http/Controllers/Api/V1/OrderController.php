@@ -42,7 +42,7 @@ class OrderController extends Controller
     {
         $this->authorizeOwner($request, $order);
 
-        $order->loadMissing(['items', 'addresses', 'statusHistories']);
+        $order->loadMissing(['items', 'addresses', 'statusHistories', 'visibleNotes']);
 
         return response()->json(['data' => new OrderResource($order)]);
     }

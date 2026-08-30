@@ -30,6 +30,7 @@ class RefundController extends Controller
             (string) $request->input('reason'),
             $request->input('remarks'),
             (array) $request->input('items', []),
+            auth('sanctum')->user(),
         );
 
         return response()->json(['data' => new RefundResource($refund)], 201);

@@ -1,6 +1,8 @@
 <?php
 
+use App\Jobs\ProcessAccountDeletion;
 use App\Jobs\PruneRecentlyViewedProducts;
+use App\Jobs\PurgeExpiredReportExports;
 use App\Jobs\ReleaseExpiredReservations;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -34,4 +36,18 @@ Schedule::command('payments:reconcile')
 Schedule::job(new PruneRecentlyViewedProducts, 'notifications')
     ->dailyAt('03:00')
     ->name('engagement:prune-recently-viewed')
+    ->withoutOverlapping();
+
+// Report export expiry (Phase 8, FR-RPT-004): purge stored CSVs past their
+// download window each morning on the reports workers.
+Schedule::job(new PurgeExpiredReportExports, 'reports')
+    ->dailyAt('04:00')
+    ->name('reports:purge-expired-exports')
+    ->withoutOverlapping();
+
+// Account erasure finalization (Phase 8, NFR-PRIV-001/002): anonymize every
+// deletion request whose grace window has fully elapsed.
+Schedule::job(new ProcessAccountDeletion)
+    ->dailyAt('04:30')
+    ->name('privacy:process-account-deletions')
     ->withoutOverlapping();

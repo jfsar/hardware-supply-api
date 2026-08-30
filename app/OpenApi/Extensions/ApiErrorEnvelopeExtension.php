@@ -21,6 +21,7 @@ use App\Exceptions\Pricing\PriceUnavailableException;
 use App\Exceptions\Reviews\ReviewAlreadyExistsException;
 use App\Exceptions\Reviews\ReviewNotVerifiedPurchaserException;
 use App\Exceptions\Reviews\ReviewReportAlreadyExistsException;
+use App\Exceptions\Reviews\ReviewStateException;
 use App\OpenApi\ErrorEnvelope;
 use Dedoc\Scramble\Extensions\ExceptionToResponseExtension;
 use Dedoc\Scramble\Support\Generator\Reference;
@@ -67,6 +68,7 @@ abstract class ApiErrorEnvelopeExtension extends ExceptionToResponseExtension
         CartEmptyException::class,
         PaymentMethodUnavailableException::class,
         OrderStateException::class,
+        ReviewStateException::class,
         IdempotencyKeyRequiredException::class,
         IdempotencyConflictException::class,
         ReviewNotVerifiedPurchaserException::class,

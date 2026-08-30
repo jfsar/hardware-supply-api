@@ -23,7 +23,7 @@ class CancelOrder
     /**
      * @throws OrderStateException when the transition is illegal
      */
-    public function __invoke(Order $order, User $actor, string $reason): Order
+    public function __invoke(Order $order, User $actor, string $reason, string $cancelledBy = 'customer'): Order
     {
         $current = $order->order_status;
 
@@ -31,7 +31,7 @@ class CancelOrder
             throw OrderStateException::illegalTransition($current, OrderStatus::Cancelled);
         }
 
-        return DB::transaction(function () use ($order, $actor, $reason, $current): Order {
+        return DB::transaction(function () use ($order, $actor, $reason, $cancelledBy, $current): Order {
             // Restock everything still held for this order.
             $order->loadMissing('reservations');
 
@@ -59,7 +59,7 @@ class CancelOrder
                 'to_status' => OrderStatus::Cancelled->value,
                 'changed_by_user_id' => $actor->getKey(),
                 'reason' => $reason,
-                'metadata' => ['cancelled_by' => 'customer'],
+                'metadata' => ['cancelled_by' => $cancelledBy],
             ]);
 
             return $order;
